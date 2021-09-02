@@ -108,13 +108,12 @@ impl Agenda {
         let words: Vec<&str> = msg.split_whitespace().collect();
 
         let msg = match words.as_slice() {
-
-            []                    => self.print_events(),
-            ["print"]             => self.print_events(),
-            ["print", args2 @ ..] => self.print_tagged_events(args2),
-            ["del", args2 @ ..]   => self.remove_events(args2),
-            ["tag", args2 @ ..]   => self.tag_event(args2),
-            ["untag", args2 @ ..] => self.untag_event(args2),
+            ["/help"]             => self.print_help(),
+            ["/print"]             => self.print_events(),
+            ["/print", args2 @ ..] => self.print_tagged_events(args2),
+            ["/del", args2 @ ..]   => self.remove_events(args2),
+            ["/tag", args2 @ ..]   => self.tag_event(args2),
+            ["/untag", args2 @ ..] => self.untag_event(args2),
             [args2 @ ..]          => self.add_event(args2)
         }
         .unwrap_or_else(format_error);
