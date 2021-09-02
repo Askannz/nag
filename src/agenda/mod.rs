@@ -287,6 +287,45 @@ impl Agenda {
 
         Ok(msg)
     }
+
+    fn print_help(&self) -> Result<String> {
+
+        let commands = [
+            (
+                "/help",
+                "Show this message"
+            ),
+            (
+                "/print",
+                "Lists upcoming events"
+            ),
+            (
+                "/print &lt;tag&gt",
+                "Lists upcoming events tagged with &lt;tag&gt;"
+            ),
+            (
+                "/del  &lt;n&gt;",
+                "Delete event number &lt;n&gt;"
+            ),
+            (
+                "/tag &lt;n&gt; &lt;tag&gt;",
+                "Tag event number &lt;n&gt; with tag &lt;tag&gt;"
+            ),
+            (
+                "/untag &lt;n&gt;",
+                "Untag event number &lt;n&gt;"
+            )
+        ];
+
+        let msg = commands.iter()
+            .map(|(cmd, txt)| {
+                format!("<b>{}</b>\n    {}", cmd, txt)
+            })
+            .collect::<Vec<String>>()
+            .join("\n");
+
+        Ok(msg)
+    }
 }
 
 fn make_tags_print_list(events: &HashMap<u64, AgendaEvent>) -> Vec<String> {
