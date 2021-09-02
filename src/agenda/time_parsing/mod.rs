@@ -59,7 +59,7 @@ impl ParsingState {
 
         self.cronline_builder.autofill(now);
 
-        let cronline = self.cronline_builder.finalize()?;
+        let cronline = self.cronline_builder.build()?;
 
         let remaining_words = self.words;
 

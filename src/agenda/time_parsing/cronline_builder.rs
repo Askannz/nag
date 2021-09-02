@@ -66,7 +66,7 @@ impl CronlineBuilder {
         }
     }
 
-    pub fn finalize(self) -> Result<Cronline> {
+    pub fn build(self) -> Result<Cronline> {
 
         let required_columns: HashSet<_> = CRON_COLUMNS.iter().cloned().collect();
         let cronline_columns: HashSet<_> = self.map.keys().cloned().collect();
