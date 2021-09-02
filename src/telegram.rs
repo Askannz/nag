@@ -57,7 +57,9 @@ impl Telegram {
                 "parse_mode": "HTML"
             });
 
-            ureq::post(&url).send_json(json)?;
+            ureq::post(&url)
+                .send_json(json)
+                .map_err(|err| anyhow::anyhow!("{:?}", err))?;
 
             Ok(())
 
