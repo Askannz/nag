@@ -7,7 +7,7 @@ mod parsers;
 use super::Instant;
 use super::cron::{CronColumn, CronValue, Cronline};
 use cronline_builder::CronlineBuilder;
-use parsers::get_parsers;
+use parsers::{get_parsers, ParseUpdate};
 
 pub fn parse_cronline_spec(now: &DateTime<chrono::Local>, words: &[&str]) -> Result<(Cronline, Vec<String>)> {
 
@@ -18,19 +18,29 @@ pub fn parse_cronline_spec(now: &DateTime<chrono::Local>, words: &[&str]) -> Res
         .map(|s| (*s).to_owned())
         .collect();
 
-    let mut state = ParsingState::new(words);
+    let mut state = ParsingState::new(words, now.clone());
 
     loop {
 
-        match parser_funcs
+        let parse_update = parser_funcs
             .iter()
-            .find_map(|func| func(now, &mut state).transpose())
-            .transpose()?
-        {
-            None => break,
-            Some(()) if state.words.is_empty() => break,
-            _ => ()
-        };
+            .find_map(|func| func(&state));
+
+        if let Some(parse_update) = parse_update {
+
+            let ParseUpdate { cron_updates, words } = parse_update;
+            for (col, val) in cron_updates.into_iter() {
+                state.update(col, val)?;
+            }
+            state.words = words;
+
+            if state.words.is_empty() {
+                break;
+            }
+
+        } else {
+            break;
+        }
     }
 
     state.finalize(&now)
@@ -39,15 +49,17 @@ pub fn parse_cronline_spec(now: &DateTime<chrono::Local>, words: &[&str]) -> Res
 pub struct ParsingState {
     words: Vec<String>,
     cronline_builder: CronlineBuilder,
+    now: DateTime<chrono::Local>
 }
 
 
 impl ParsingState {
 
-    fn new(words: Vec<String>) -> Self {
+    fn new(words: Vec<String>, now: DateTime<chrono::Local>) -> Self {
         ParsingState {
             words,
-            cronline_builder: CronlineBuilder::new()
+            cronline_builder: CronlineBuilder::new(),
+            now
         }
     }
 
