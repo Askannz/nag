@@ -217,7 +217,7 @@ fn try_parse_date_digits<'a, 'b>(state: &'b ParsingState<'a>) -> Option<ParseUpd
         remaining_words
     };
 
-    debug!("Parsed: digits");
+    debug!("Parsed: date digits");
 
     Some(update)
 }
