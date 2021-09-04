@@ -8,17 +8,12 @@ use super::Instant;
 use super::cron::{CronColumn, CronValue, Cronline};
 use cronline_builder::CronlineBuilder;
 
-struct ParseUpdate { 
+struct ParseUpdate<'a> { 
     cron_updates: Vec<(CronColumn, CronValue)>,
-    words: Vec<String>
+    words: &'a[&'a str]
 }
 
-pub(super) fn parse_cronline(now: &DateTime<chrono::Local>, words: &[&str]) -> Result<(Cronline, Vec<String>)> {
-
-    let words: Vec<String> = words
-        .iter()
-        .map(|s| (*s).to_owned())
-        .collect();
+pub(super) fn parse_cronline<'a>(now: &DateTime<chrono::Local>, words: &'a [&'a str]) -> Result<(Cronline, &'a [&'a str])> {
 
     let mut state = ParsingState::new(words, now.clone());
 
@@ -46,16 +41,16 @@ pub(super) fn parse_cronline(now: &DateTime<chrono::Local>, words: &[&str]) -> R
     state.finalize(&now)
 }
 
-struct ParsingState {
-    words: Vec<String>,
+struct ParsingState<'a> {
+    words: &'a[&'a str],
     cronline_builder: CronlineBuilder,
     now: DateTime<chrono::Local>
 }
 
 
-impl ParsingState {
+impl<'a> ParsingState<'a> {
 
-    fn new(words: Vec<String>, now: DateTime<chrono::Local>) -> Self {
+    fn new(words: &'a[&'a str], now: DateTime<chrono::Local>) -> Self {
         ParsingState {
             words,
             cronline_builder: CronlineBuilder::new(),
@@ -67,7 +62,7 @@ impl ParsingState {
         self.cronline_builder.set(col, val)
     }
 
-    fn finalize(mut self, now: &Instant) -> Result<(Cronline, Vec<String>)> {
+    fn finalize(mut self, now: &Instant) -> Result<(Cronline, &'a [&'a str])> {
 
         self.cronline_builder.autofill(now);
 
