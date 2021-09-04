@@ -4,7 +4,7 @@ use std::sync::{Arc, Mutex};
 use std::sync::mpsc::Sender;
 use std::time::Duration;
 use serde::{Deserialize, Serialize};
-use anyhow::{anyhow, Context, Result};
+use anyhow::{anyhow, Context, bail};
 use chrono::Timelike;
 use log::{debug, info, warn};
 
@@ -80,11 +80,14 @@ impl Agenda {
                     for id in keys_list {
                         let event = &state.events[&id];
                         if event.check_fires(&curr_t) {
+
+                            info!("It's {}, firing event {}", curr_t, id);
         
                             let notification = format!("⏰ {}", event.text);
                             sender.send(BotUpdate::MsgOut(notification)).unwrap();
         
                             if event.get_next_occurence(&curr_t).is_none() {
+                                info!("Event {} never occurs again, removing", id);
                                 state.events.remove(&id);
                                 state_changed = true;
                             }
@@ -106,6 +109,8 @@ impl Agenda {
     pub(super) fn process(&mut self, msg: &str) {
 
         let words: Vec<&str> = msg.split_whitespace().collect();
+
+        debug!("words {:?}", words);
 
         let msg = match words.as_slice() {
             ["/help"]             => self.print_help(),
@@ -136,16 +141,25 @@ fn format_error(err: anyhow::Error) -> String {
 
 impl Agenda {
 
-    fn add_event(&self, words: &[&str]) -> Result<String> {
+    fn add_event(&self, words: &[&str]) -> anyhow::Result<String> {
+
+        info!("Adding new event");
 
         let now = chrono::Local::now();
+
+        debug!("Time now is {}", now);
 
         let (cronline, remaining_words) = parse_cronline(&now, words)
             .context("Invalid command")?;
 
+        debug!("Parsed cronline {:?}", cronline);
+        debug!("Remaining words {:?}", remaining_words);
+
         let mut state = self.state.lock().unwrap();
 
         let new_id = (0..).find(|id| !state.events.contains_key(&id)).unwrap();
+
+        debug!("New event ID {}", new_id);
 
         let agenda_event = AgendaEvent {
             text: remaining_words.join(" "),
@@ -157,6 +171,8 @@ impl Agenda {
         let occ_t = agenda_event.get_next_occurence(&now)
             .ok_or(anyhow!("Invalid time: never occurs"))?;
 
+        debug!("Event occurs at {}", occ_t);
+
         state.events.insert(new_id, agenda_event);
         state.save(&self.state_path);
 
@@ -167,15 +183,17 @@ impl Agenda {
             new_id, occ_text))
     }
 
-    fn remove_events(&self, words: &[&str]) -> Result<String> {
+    fn remove_events(&self, words: &[&str]) -> anyhow::Result<String> {
 
         if words.is_empty() {
-            return Err(anyhow!("No event number supplied"));
+            bail!("No event number supplied");
         }
 
         let event_ids = words.iter()
             .map(|w| w.parse::<u64>().context("Invalid event number"))
-            .collect::<Result<Vec<u64>>>()?;
+            .collect::<anyhow::Result<Vec<u64>>>()?;
+
+        info!("Removing events {:?}", event_ids);
 
         let mut state = self.state.lock().unwrap();
 
@@ -191,7 +209,7 @@ impl Agenda {
         Ok(out_lines.join("\n"))
     }
 
-    fn tag_event(&self, words: &[&str]) -> Result<String> {
+    fn tag_event(&self, words: &[&str]) -> anyhow::Result<String> {
 
         let (id_str, tag_words) = match words {
             []                       => Err(anyhow!("No arguments specified")),
@@ -208,6 +226,8 @@ impl Agenda {
         let event = state.events.get_mut(&id)
             .ok_or(anyhow!("No event at this number"))?;
 
+        info!("Tagging event {}", id);
+
         let tag = tag_words.join(" ");
         let out_str = format!("Tagged event \"{}\" with \"{}\"", event.text, tag);
         event.tag = Some(tag);
@@ -217,12 +237,14 @@ impl Agenda {
         Ok(out_str)
     }
 
-    fn untag_event(&self, words: &[&str]) -> Result<String> {
+    fn untag_event(&self, words: &[&str]) -> anyhow::Result<String> {
 
         let id: u64 = words.get(0)
             .ok_or(anyhow!("No event number supplied"))?
             .parse()
             .context("Invalid event number")?;
+
+        info!("Untagging event {}", id);
 
         let mut state = self.state.lock().unwrap();
 
@@ -236,7 +258,9 @@ impl Agenda {
         Ok("Untagged event".to_string())
     }
 
-    fn print_events(&self) -> Result<String> {
+    fn print_events(&self) -> anyhow::Result<String> {
+
+        info!("Printing events");
 
         let state = self.state.lock().unwrap();
 
@@ -259,11 +283,13 @@ impl Agenda {
         Ok(msg)
     }
 
-    fn print_tagged_events(&self, words: &[&str]) -> Result<String> {
+    fn print_tagged_events(&self, words: &[&str]) -> anyhow::Result<String> {
 
         if words.is_empty() {
             return Err(anyhow!("No tag supplied"))
         }
+
+        info!("Printing tagged events");
 
         let tag = words.join(" ");
 
@@ -288,7 +314,9 @@ impl Agenda {
         Ok(msg)
     }
 
-    fn print_help(&self) -> Result<String> {
+    fn print_help(&self) -> anyhow::Result<String> {
+
+        info!("Printing help");
 
         let commands = [
             (

@@ -51,7 +51,7 @@ pub enum CronValue {
 }
 
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Cronline {
     line: [CronValue; 5]
 }

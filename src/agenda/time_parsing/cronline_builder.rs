@@ -1,7 +1,8 @@
 use std::convert::TryInto;
 use std::collections::{HashSet, HashMap};
 use chrono::DateTime;
-use anyhow::{anyhow, Result};
+use anyhow::bail;
+use log::debug;
 use super::super::cron::{CronValue, CronColumn, Cronline, CRON_COLUMNS};
 
 
@@ -16,19 +17,25 @@ impl CronlineBuilder {
         CronlineBuilder { map: HashMap::new() }
     }
 
-    pub fn set(&mut self, col: CronColumn, val: CronValue) -> Result<()> {
+    pub fn set(&mut self, col: CronColumn, val: CronValue) -> anyhow::Result<()> {
+        debug!("Setting {:?} to {:?}", col, val);
         match self.map.insert(col, val) {
             None => Ok(()),
-            Some(_) => Err(anyhow!("{:?} already specified", col))
+            Some(_) => bail!("{:?} already specified", col)
         }
     }
 
     pub fn autofill(&mut self, now: &DateTime<chrono::offset::Local>) {
+
+        debug!("Autofilling cronline: {:?}", self.map);
     
         // Auto-filling wildcards (a.k.a "CronValue::Every") columns
+        debug!("Filling wildcards");
         let mut wildcard_fill_state = false;
         for col in CRON_COLUMNS.iter() {
-            
+
+            debug!("Column {:?}, wildcard={}", col, wildcard_fill_state);
+
             match self.map.get(&col).copied() {
     
                 None if wildcard_fill_state => { self.map.insert(*col, CronValue::Every); },
@@ -46,9 +53,12 @@ impl CronlineBuilder {
     
 
         // Auto-filling fixed columns
+        debug!("Filling fixed columns");
         let cronline_now = Cronline::from_time(now);
         let mut fixed_fill_state = false;
         for col in CRON_COLUMNS.iter() {
+
+            debug!("Column {:?}, fixed={}", col, fixed_fill_state);
             
             match self.map.get(&col).copied() {
     
@@ -64,21 +74,26 @@ impl CronlineBuilder {
                 }
             };
         }
+
+        debug!("Filled cronline: {:?}", self.map);
     }
 
-    pub fn build(self) -> Result<Cronline> {
+    pub fn build(self) -> anyhow::Result<Cronline> {
+
+        debug!("Building cronline");
 
         let required_columns: HashSet<_> = CRON_COLUMNS.iter().cloned().collect();
         let cronline_columns: HashSet<_> = self.map.keys().cloned().collect();
         let cols_diff: Vec<_> = required_columns.difference(&cronline_columns).collect();
 
         if !cols_diff.is_empty() {
+            debug!("Missing columns: {:?}", cols_diff);
             let cols_str = cols_diff
                 .iter()
                 .map(|c| format!("{:?}", c))
                 .collect::<Vec<String>>()
                 .join(", ");
-            return Err(anyhow!("Incomplete cronline: missing {}", cols_str));
+            bail!("Incomplete cronline: missing {}", cols_str);
         }
 
         let line: [CronValue; 5] = {
