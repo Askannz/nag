@@ -5,6 +5,7 @@ use anyhow::bail;
 use log::debug;
 use super::super::cron::{CronValue, CronColumn, Cronline, CRON_COLUMNS};
 
+const DEFAULT_TIME: (u64, u64) = (10, 0);
 
 #[derive(Debug)]
 pub(super) struct CronlineBuilder {
@@ -26,7 +27,7 @@ impl CronlineBuilder {
         }
     }
 
-    pub fn autofill(&mut self, now: &DateTime<chrono::offset::Local>) {
+    pub fn autofill(&mut self, now: &DateTime<chrono::offset::Local>) -> Option<String> {
 
         debug!("Autofilling cronline: {:?}", self.map);
     
@@ -76,7 +77,26 @@ impl CronlineBuilder {
             };
         }
 
+        let mut comment = None;
+        if !self.map.contains_key(&CronColumn::Hour) {
+
+            debug!("Filling default hour/minute");
+            let (def_h, def_m) = DEFAULT_TIME;
+
+            self.map.insert(CronColumn::Hour, CronValue::On(def_h));
+            self.map.insert(CronColumn::Minute, CronValue::On(def_m));
+
+            let (h_12, am_pm) = to_am_pm_format(def_h);
+
+            comment = Some(format!(
+                "Defaulting time to {}:{:02}{}",
+                h_12, def_m, am_pm
+            ));
+        }
+
         debug!("Filled cronline: {:?}", self.map);
+
+        comment
     }
 
     pub fn build(self) -> anyhow::Result<Cronline> {
@@ -112,4 +132,9 @@ impl CronlineBuilder {
         
         Ok(Cronline::from_values(line))
     }
+}
+
+fn to_am_pm_format(h: u64) -> (u64, String) {
+    if h < 12 { (h, "am".into()) }
+    else  { (h - 12, "pm".into()) }
 }

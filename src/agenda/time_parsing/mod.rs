@@ -10,12 +10,19 @@ use super::cron::{CronColumn, CronValue, Cronline};
 use cronline_builder::CronlineBuilder;
 
 #[derive(Debug)]
+pub(super) struct CronlineResult<'a> { 
+    pub cronline: Cronline,
+    pub remaining_words: &'a[&'a str],
+    pub comment: Option<String>
+}
+
+#[derive(Debug)]
 struct ParseUpdate<'a> { 
     cron_updates: Vec<(CronColumn, CronValue)>,
     remaining_words: &'a[&'a str]
 }
 
-pub(super) fn parse_cronline<'a>(now: &DateTime<chrono::Local>, words: &'a [&'a str]) -> Result<(Cronline, &'a [&'a str])> {
+pub(super) fn parse_cronline<'a>(now: &DateTime<chrono::Local>, words: &'a [&'a str]) -> Result<CronlineResult<'a>> {
 
     let mut state = ParsingState::new(words, now.clone());
 
@@ -77,12 +84,18 @@ impl<'a> ParsingState<'a> {
         self.cronline_builder.set(col, val)
     }
 
-    fn finalize(mut self, now: &Instant) -> Result<(Cronline, &'a [&'a str])> {
+    fn finalize(mut self, now: &Instant) -> Result<CronlineResult<'a>> {
 
-        self.cronline_builder.autofill(now);
+        let comment = self.cronline_builder.autofill(now);
 
         let cronline = self.cronline_builder.build()?;
 
-        Ok((cronline, self.remaining_words))
+        let result = CronlineResult {
+            cronline,
+            remaining_words: self.remaining_words,
+            comment
+        };
+
+        Ok(result)
     }
 }

@@ -14,7 +14,7 @@ mod cron;
 mod time_parsing;
 mod event;
 
-use time_parsing::parse_cronline;
+use time_parsing::{parse_cronline, CronlineResult};
 use event::AgendaEvent;
 
 pub(super) struct Agenda {
@@ -149,8 +149,11 @@ impl Agenda {
 
         debug!("Time now is {}", now);
 
-        let (cronline, remaining_words) = parse_cronline(&now, words)
-            .context("Invalid command")?;
+        let CronlineResult {
+            cronline,
+            remaining_words,
+            comment
+        } = parse_cronline(&now, words).context("Invalid command")?;
 
         debug!("Parsed cronline {:?}", cronline);
         debug!("Remaining words {:?}", remaining_words);
@@ -178,9 +181,19 @@ impl Agenda {
 
         let occ_text = format_time_diff(occ_t - now);
 
-        Ok(format!(
-            "New event added (number {}).\nNext occurence in {}.",
-            new_id, occ_text))
+        let text = {
+            let mut text = String::new();
+            if let Some(comment) = comment {
+                text = format!("{}\n", comment);
+            }
+            format!(
+                "{}New event added (number {}).\nNext occurence in {}.",
+                text, new_id, occ_text
+            )
+        };
+
+
+        Ok(text)
     }
 
     fn remove_events(&self, words: &[&str]) -> anyhow::Result<String> {
