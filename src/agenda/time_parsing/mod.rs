@@ -1,5 +1,6 @@
 use chrono::DateTime;
 use anyhow::Result;
+use log::debug;
 
 mod cronline_builder;
 mod parsers;
@@ -8,6 +9,7 @@ use super::Instant;
 use super::cron::{CronColumn, CronValue, Cronline};
 use cronline_builder::CronlineBuilder;
 
+#[derive(Debug)]
 struct ParseUpdate<'a> { 
     cron_updates: Vec<(CronColumn, CronValue)>,
     remaining_words: &'a[&'a str]
@@ -21,7 +23,14 @@ pub(super) fn parse_cronline<'a>(now: &DateTime<chrono::Local>, words: &'a [&'a 
 
         let parse_update = parsers::parse(&state);
 
+        debug!("Parse update? {}", parse_update.is_some());
+
         if let Some(parse_update) = parse_update {
+
+            debug!(
+                "Parse update: cron={:?} rem_words={:?}",
+                parse_update.cron_updates, parse_update.remaining_words
+            );
 
             let ParseUpdate { cron_updates, remaining_words } = parse_update;
             for (col, val) in cron_updates.into_iter() {
@@ -36,11 +45,17 @@ pub(super) fn parse_cronline<'a>(now: &DateTime<chrono::Local>, words: &'a [&'a 
         } else {
             break;
         }
+
+        debug!(
+            "Parse state: cron={:?} rem_words={:?}",
+            state.cronline_builder.map, state.remaining_words
+        );
     }
 
     state.finalize(&now)
 }
 
+#[derive(Debug)]
 struct ParsingState<'a> {
     remaining_words: &'a[&'a str],
     cronline_builder: CronlineBuilder,

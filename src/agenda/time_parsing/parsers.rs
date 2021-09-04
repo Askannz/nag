@@ -1,4 +1,5 @@
 use std::convert::TryInto;
+use log::debug;
 use regex::Regex;
 use chrono::{Duration, Datelike};
 use super::super::cron::{CronColumn, CronValue, CRON_COLUMNS};
@@ -30,13 +31,16 @@ fn try_parse_preposition<'a, 'b>(state: &'b ParsingState<'a>) -> Option<ParseUpd
 
     let (first_word, remaining_words) = state.remaining_words.split_first()?;
 
-    match *first_word {
-        "at" | "in" | "on" => Some(ParseUpdate {
+    let update = match *first_word {
+        "at" | "in" | "on" => ParseUpdate {
             cron_updates: vec![],
             remaining_words
-        }),
-        _ => None
-    }
+        },
+        _ => return None
+    };
+
+    debug!("Parsed: preposition");
+    Some(update)
 }
 
 fn try_parse_day<'a, 'b>(state: &'b ParsingState<'a>) -> Option<ParseUpdate<'a>> {
@@ -62,6 +66,8 @@ fn try_parse_day<'a, 'b>(state: &'b ParsingState<'a>) -> Option<ParseUpdate<'a>>
         cron_updates: vec![(CronColumn::Day, CronValue::On(day))],
         remaining_words
     };
+
+    debug!("Parsed: day");
 
     Some(update)
 }
@@ -94,6 +100,8 @@ fn try_parse_month<'a, 'b>(state: &'b ParsingState<'a>) -> Option<ParseUpdate<'a
         cron_updates: vec![(CronColumn::Month, CronValue::On(month))],
         remaining_words
     };
+
+    debug!("Parsed: month");
 
     Some(update)
 }
@@ -136,6 +144,7 @@ fn try_parse_clocktime<'a, 'b>(state: &'b ParsingState<'a>) -> Option<ParseUpdat
         remaining_words
     };
 
+    debug!("Parsed: clock time");
 
     Some(update)
 }
@@ -156,6 +165,8 @@ fn try_parse_year<'a, 'b>(state: &'b ParsingState<'a>) -> Option<ParseUpdate<'a>
         cron_updates: vec![(CronColumn::Year, CronValue::On(year))],
         remaining_words
     };
+
+    debug!("Parsed: year");
 
     Some(update)
 }
@@ -179,6 +190,8 @@ fn try_parse_every<'a, 'b>(state: &'b ParsingState<'a>) -> Option<ParseUpdate<'a
         remaining_words
     };
 
+    debug!("Parsed: \"every\"");
+
     Some(update)
 }
 
@@ -201,6 +214,8 @@ fn try_parse_date_digits<'a, 'b>(state: &'b ParsingState<'a>) -> Option<ParseUpd
         ],
         remaining_words
     };
+
+    debug!("Parsed: digits");
 
     Some(update)
 }
@@ -232,6 +247,8 @@ fn try_parse_relative<'a, 'b>(state: &'b ParsingState<'a>) -> Option<ParseUpdate
         ],
         remaining_words
     };
+
+    debug!("Parsed: relative");
 
     Some(update)
 }

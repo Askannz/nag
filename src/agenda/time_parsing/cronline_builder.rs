@@ -6,8 +6,9 @@ use log::debug;
 use super::super::cron::{CronValue, CronColumn, Cronline, CRON_COLUMNS};
 
 
-pub struct CronlineBuilder {
-    map: HashMap<CronColumn, CronValue>
+#[derive(Debug)]
+pub(super) struct CronlineBuilder {
+    pub(super) map: HashMap<CronColumn, CronValue>
 }
 
 
