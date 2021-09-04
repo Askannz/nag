@@ -1,7 +1,8 @@
+use std::collections::HashMap;
 use std::convert::TryInto;
 use log::debug;
 use regex::Regex;
-use chrono::{Duration, Datelike};
+use chrono::{DateTime, Datelike, Duration, Timelike};
 use super::super::cron::{CronColumn, CronValue, CRON_COLUMNS};
 use super::{ParsingState, ParseUpdate};
 
@@ -15,7 +16,8 @@ pub(super) fn parse<'a, 'b>(state: &'b ParsingState<'a>) -> Option<ParseUpdate<'
         &try_parse_year,
         &try_parse_every,
         &try_parse_date_digits,
-        &try_parse_relative
+        &try_parse_relative,
+        &try_parse_weekday,
     ];
 
     parsers
@@ -251,4 +253,63 @@ fn try_parse_relative<'a, 'b>(state: &'b ParsingState<'a>) -> Option<ParseUpdate
     debug!("Parsed: relative");
 
     Some(update)
+}
+
+fn try_parse_weekday<'a, 'b>(state: &'b ParsingState<'a>) -> Option<ParseUpdate<'a>> {
+
+    const DAYS: [&str; 7] = [
+        "Monday",
+        "Tuesday",
+        "Wednesday",
+        "Thursday",
+        "Friday",
+        "Saturday",
+        "Sunday"
+    ];
+
+    let (first_word, remaining_words) = state.remaining_words.split_first()?;
+
+    let event_offset: u32 = DAYS
+        .iter().position(|d| d.to_lowercase() == first_word.to_lowercase())?
+        .try_into().unwrap();
+    let current_offset = state.now.date().weekday().num_days_from_monday();
+
+    let nb_days = if current_offset < event_offset {
+        event_offset - current_offset
+    } else {
+        7 - (current_offset - event_offset)
+    };
+
+    let time = state.now + Duration::days(nb_days.into());
+    let cron_vals = time_to_cron(time);
+
+    let update = ParseUpdate {
+        cron_updates: vec![(CronColumn::Day, cron_vals[&CronColumn::Day])],
+        remaining_words
+    };
+
+    debug!("Parsed: weekday");
+
+    Some(update)
+}
+
+fn time_to_cron(time: DateTime<chrono::Local>) -> HashMap<CronColumn, CronValue> {
+
+    let (minute, hour, day, month, year) = (
+        time.minute().try_into().unwrap(),
+        time.hour().try_into().unwrap(),
+        time.date().day().try_into().unwrap(),
+        time.date().month().try_into().unwrap(),
+        time.date().year().try_into().unwrap()
+    );
+
+    vec![
+        (CronColumn::Minute, CronValue::On(minute)),
+        (CronColumn::Hour, CronValue::On(hour)),
+        (CronColumn::Day, CronValue::On(day)),
+        (CronColumn::Month, CronValue::On(month)),
+        (CronColumn::Year, CronValue::On(year)),
+    ]
+    .into_iter()
+    .collect()
 }
