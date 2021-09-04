@@ -28,12 +28,12 @@ type ParserFunc<'a, 'b> = dyn Fn(&'b ParsingState<'a>) -> Option<ParseUpdate<'a>
 
 fn try_parse_preposition<'a, 'b>(state: &'b ParsingState<'a>) -> Option<ParseUpdate<'a>> {
 
-    let (first_word, rem_words) = state.words.split_first()?;
+    let (first_word, remaining_words) = state.remaining_words.split_first()?;
 
     match *first_word {
         "at" | "in" | "on" => Some(ParseUpdate {
             cron_updates: vec![],
-            words: rem_words
+            remaining_words
         }),
         _ => None
     }
@@ -43,11 +43,11 @@ fn try_parse_day<'a, 'b>(state: &'b ParsingState<'a>) -> Option<ParseUpdate<'a>>
 
     let reg = Regex::new(r"^([0-9]{1,2})((st)|(nd)|(rd)|(th))?$").unwrap();
 
-    let (word, rem_words) = {
-        let (first_word, rem_words) = state.words.split_first()?;
+    let (word, remaining_words) = {
+        let (first_word, remaining_words) = state.remaining_words.split_first()?;
         match *first_word {
-            "the" => rem_words.split_first()?,
-            _ => (first_word, rem_words)
+            "the" => remaining_words.split_first()?,
+            _ => (first_word, remaining_words)
         }
     };
 
@@ -60,7 +60,7 @@ fn try_parse_day<'a, 'b>(state: &'b ParsingState<'a>) -> Option<ParseUpdate<'a>>
 
     let update = ParseUpdate {
         cron_updates: vec![(CronColumn::Day, CronValue::On(day))],
-        words: rem_words
+        remaining_words
     };
 
     Some(update)
@@ -83,7 +83,7 @@ fn try_parse_month<'a, 'b>(state: &'b ParsingState<'a>) -> Option<ParseUpdate<'a
         "December"
     ];
 
-    let (first_word, rem_words) = state.words.split_first()?;
+    let (first_word, remaining_words) = state.remaining_words.split_first()?;
 
     let month = {
         let month_0 = MONTHS.iter().position(|m| m == first_word)?;
@@ -92,7 +92,7 @@ fn try_parse_month<'a, 'b>(state: &'b ParsingState<'a>) -> Option<ParseUpdate<'a
 
     let update = ParseUpdate {
         cron_updates: vec![(CronColumn::Month, CronValue::On(month))],
-        words: rem_words
+        remaining_words
     };
 
     Some(update)
@@ -102,7 +102,7 @@ fn try_parse_clocktime<'a, 'b>(state: &'b ParsingState<'a>) -> Option<ParseUpdat
 
     let reg = Regex::new(r"^([0-9]{1,2})(:([0-9]{1,2}))?([ap]m)?$").unwrap();
 
-    let (first_word, rem_words) = state.words.split_first()?;
+    let (first_word, remaining_words) = state.remaining_words.split_first()?;
     let captures = reg.captures(first_word)?;
 
     let hour: u64 = {
@@ -133,7 +133,7 @@ fn try_parse_clocktime<'a, 'b>(state: &'b ParsingState<'a>) -> Option<ParseUpdat
             (CronColumn::Hour, CronValue::On(hour)),
             (CronColumn::Minute, CronValue::On(minute))
         ],
-        words: rem_words
+        remaining_words
     };
 
 
@@ -144,7 +144,7 @@ fn try_parse_year<'a, 'b>(state: &'b ParsingState<'a>) -> Option<ParseUpdate<'a>
 
     let reg = Regex::new(r"^[0-9]{4}$").unwrap();
 
-    let (first_word, rem_words) = state.words.split_first()?;
+    let (first_word, remaining_words) = state.remaining_words.split_first()?;
 
     let year: u64 = reg.captures(first_word)?
         .get(0)?
@@ -154,7 +154,7 @@ fn try_parse_year<'a, 'b>(state: &'b ParsingState<'a>) -> Option<ParseUpdate<'a>
 
     let update = ParseUpdate {
         cron_updates: vec![(CronColumn::Year, CronValue::On(year))],
-        words: rem_words
+        remaining_words
     };
 
     Some(update)
@@ -162,13 +162,13 @@ fn try_parse_year<'a, 'b>(state: &'b ParsingState<'a>) -> Option<ParseUpdate<'a>
 
 fn try_parse_every<'a, 'b>(state: &'b ParsingState<'a>) -> Option<ParseUpdate<'a>> {
 
-    let (w1, rem_words) = state.words.split_first()?;
+    let (w1, remaining_words) = state.remaining_words.split_first()?;
 
     if *w1 != "every" {
         return None
     }
 
-    let (w2, rem_words) = rem_words.split_first()?;
+    let (w2, remaining_words) = remaining_words.split_first()?;
 
     let cron_col = CRON_COLUMNS
         .iter()
@@ -176,7 +176,7 @@ fn try_parse_every<'a, 'b>(state: &'b ParsingState<'a>) -> Option<ParseUpdate<'a
 
     let update = ParseUpdate {
         cron_updates: vec![(*cron_col, CronValue::Every)],
-        words: rem_words
+        remaining_words
     };
 
     Some(update)
@@ -188,7 +188,7 @@ fn try_parse_date_digits<'a, 'b>(state: &'b ParsingState<'a>) -> Option<ParseUpd
 
     let reg = Regex::new(r"^([0-9]{1,2})/([0-9]{1,2})(/([0-9]{4}))?$").unwrap();
 
-    let (word, rem_words) = state.words.split_first()?;
+    let (word, remaining_words) = state.remaining_words.split_first()?;
     let captures = reg.captures(word)?;
 
     let day: u64 = captures.get(1)?.as_str().parse().ok()?;
@@ -199,7 +199,7 @@ fn try_parse_date_digits<'a, 'b>(state: &'b ParsingState<'a>) -> Option<ParseUpd
             (CronColumn::Day, CronValue::On(day)),
             (CronColumn::Month, CronValue::On(month))
         ],
-        words: rem_words
+        remaining_words
     };
 
     Some(update)
@@ -210,7 +210,7 @@ fn try_parse_relative<'a, 'b>(state: &'b ParsingState<'a>) -> Option<ParseUpdate
 
     let date_now = state.now.date();
 
-    let (word, rem_words) = state.words.split_first()?;
+    let (word, remaining_words) = state.remaining_words.split_first()?;
 
     let date = match *word {
         "today" => Some(date_now),
@@ -230,7 +230,7 @@ fn try_parse_relative<'a, 'b>(state: &'b ParsingState<'a>) -> Option<ParseUpdate
             (CronColumn::Month, CronValue::On(month)),
             (CronColumn::Year, CronValue::On(year))
         ],
-        words: rem_words
+        remaining_words
     };
 
     Some(update)
