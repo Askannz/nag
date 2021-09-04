@@ -2,14 +2,12 @@ use std::convert::TryInto;
 use regex::Regex;
 use chrono::{Duration, Datelike};
 use super::super::cron::{CronColumn, CronValue, CRON_COLUMNS};
-use super::ParsingState;
+use super::{ParsingState, ParseUpdate};
 
 
-pub type ParserFunc = dyn Fn(&ParsingState) -> Option<ParseUpdate>;
+pub(super) fn parse(state: &ParsingState) -> Option<ParseUpdate> {
 
-
-pub fn get_parsers<'a>() -> Vec<&'a ParserFunc> {
-    vec![
+    let parsers: Vec<&ParserFunc> = vec![
         &try_parse_preposition,
         &try_parse_day,
         &try_parse_month,
@@ -18,13 +16,15 @@ pub fn get_parsers<'a>() -> Vec<&'a ParserFunc> {
         &try_parse_every,
         &try_parse_date_digits,
         &try_parse_relative
-    ]
+    ];
+
+    parsers
+        .iter()
+        .find_map(|func| func(&state))
 }
 
-pub struct ParseUpdate { 
-    pub cron_updates: Vec<(CronColumn, CronValue)>,
-    pub words: Vec<String>
-}
+
+type ParserFunc = dyn Fn(&ParsingState) -> Option<ParseUpdate>;
 
 
 fn try_parse_preposition(state: &ParsingState) -> Option<ParseUpdate> {

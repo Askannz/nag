@@ -7,11 +7,13 @@ mod parsers;
 use super::Instant;
 use super::cron::{CronColumn, CronValue, Cronline};
 use cronline_builder::CronlineBuilder;
-use parsers::{get_parsers, ParseUpdate};
 
-pub fn parse_cronline_spec(now: &DateTime<chrono::Local>, words: &[&str]) -> Result<(Cronline, Vec<String>)> {
+struct ParseUpdate { 
+    cron_updates: Vec<(CronColumn, CronValue)>,
+    words: Vec<String>
+}
 
-    let parser_funcs = get_parsers();
+pub(super) fn parse_cronline(now: &DateTime<chrono::Local>, words: &[&str]) -> Result<(Cronline, Vec<String>)> {
 
     let words: Vec<String> = words
         .iter()
@@ -22,9 +24,7 @@ pub fn parse_cronline_spec(now: &DateTime<chrono::Local>, words: &[&str]) -> Res
 
     loop {
 
-        let parse_update = parser_funcs
-            .iter()
-            .find_map(|func| func(&state));
+        let parse_update = parsers::parse(&state);
 
         if let Some(parse_update) = parse_update {
 
@@ -46,7 +46,7 @@ pub fn parse_cronline_spec(now: &DateTime<chrono::Local>, words: &[&str]) -> Res
     state.finalize(&now)
 }
 
-pub struct ParsingState {
+struct ParsingState {
     words: Vec<String>,
     cronline_builder: CronlineBuilder,
     now: DateTime<chrono::Local>

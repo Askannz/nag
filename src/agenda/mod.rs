@@ -14,10 +14,10 @@ mod cron;
 mod time_parsing;
 mod event;
 
-use time_parsing::parse_cronline_spec;
+use time_parsing::parse_cronline;
 use event::AgendaEvent;
 
-pub struct Agenda {
+pub(super) struct Agenda {
     state: Arc<Mutex<AgendaState>>,
     sender: Sender<BotUpdate>,
     state_path: PathBuf
@@ -27,7 +27,7 @@ type Instant = chrono::DateTime<chrono::offset::Local>;
 
 impl Agenda {
 
-    pub fn new(data_path: &Path, sender: &Sender<BotUpdate>) -> Self {
+    pub(super) fn new(data_path: &Path, sender: &Sender<BotUpdate>) -> Self {
 
         let state_path = data_path.join("agenda.json");
         debug!("Agenda state path: {}", state_path.to_string_lossy());
@@ -49,7 +49,7 @@ impl Agenda {
         }
     }
 
-    pub fn get_loop(&self) -> impl FnOnce() {
+    pub(super) fn get_loop(&self) -> impl FnOnce() {
 
         const INTERVAL: Duration = Duration::from_millis(500);
 
@@ -103,7 +103,7 @@ impl Agenda {
         }
     }
 
-    pub fn process(&mut self, msg: &str) {
+    pub(super) fn process(&mut self, msg: &str) {
 
         let words: Vec<&str> = msg.split_whitespace().collect();
 
@@ -140,7 +140,7 @@ impl Agenda {
 
         let now = chrono::Local::now();
 
-        let (cronline, remaining_words) = parse_cronline_spec(&now, words)
+        let (cronline, remaining_words) = parse_cronline(&now, words)
             .context("Invalid command")?;
 
         let mut state = self.state.lock().unwrap();
@@ -394,7 +394,7 @@ struct AgendaState {
 
 impl AgendaState {
 
-    pub fn restore(state_path: &Path) -> anyhow::Result<Self> {
+    fn restore(state_path: &Path) -> anyhow::Result<Self> {
         info!(
             "Attempting to restore agenda from {}",
             state_path.to_string_lossy()
@@ -404,11 +404,11 @@ impl AgendaState {
         Ok(state)
     }
 
-    pub fn new() -> Self {
+    fn new() -> Self {
         AgendaState { events: HashMap::new() }
     }
 
-    pub fn save(&self, state_path: &Path) {
+    fn save(&self, state_path: &Path) {
 
         || -> anyhow::Result<()> {
             info!("Saving agenda to: {}", state_path.to_string_lossy());

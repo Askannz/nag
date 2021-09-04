@@ -23,10 +23,6 @@ pub enum CronColumn {
 
 impl CronColumn {
 
-    pub fn from_rank(rank: usize) -> Self {
-        CRON_COLUMNS[rank]
-    }
-
     pub fn rank(&self) -> usize {
         match self {
             CronColumn::Year   => 4,
