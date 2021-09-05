@@ -218,7 +218,17 @@ fn try_parse_duration<'a, 'b>(state: &'b ParsingState<'a>) -> Option<ParseUpdate
     }?;
 
     let time = state.now + duration;
-    let cron_updates = time_to_cron(time).into_iter().collect();
+
+    let cron_updates = get_cron_from_time(
+        time,
+        &[
+            CronColumn::Minute,
+            CronColumn::Hour,
+            CronColumn::Day,
+            CronColumn::Month,
+            CronColumn::Year,
+        ]
+    );
 
     let update = ParseUpdate {
         cron_updates,
@@ -318,28 +328,25 @@ fn try_parse_date_digits<'a, 'b>(state: &'b ParsingState<'a>) -> Option<ParseUpd
 
 fn try_parse_relative<'a, 'b>(state: &'b ParsingState<'a>) -> Option<ParseUpdate<'a>> {
 
-    let date_now = state.now.date();
-
     let (word, remaining_words) = state.remaining_words.split_first()?;
 
-    let date = match *word {
-        "today" => Some(date_now),
-        "tomorrow" => Some(date_now + Duration::days(1)),
+    let time = match *word {
+        "today" => Some(state.now),
+        "tomorrow" => Some(state.now + Duration::days(1)),
         _ => None
     }?;
 
-    let (day, month, year) = (
-        date.day().try_into().unwrap(),
-        date.month().try_into().unwrap(),
-        date.year().try_into().unwrap()
+    let cron_updates = get_cron_from_time(
+        time,
+        &[
+            CronColumn::Day,
+            CronColumn::Month,
+            CronColumn::Year
+        ]
     );
 
     let update = ParseUpdate {
-        cron_updates: vec![
-            (CronColumn::Day, CronValue::On(day)),
-            (CronColumn::Month, CronValue::On(month)),
-            (CronColumn::Year, CronValue::On(year))
-        ],
+        cron_updates,
         remaining_words
     };
 
@@ -378,10 +385,18 @@ fn try_parse_weekday<'a, 'b>(state: &'b ParsingState<'a>) -> Option<ParseUpdate<
     };
 
     let time = state.now + Duration::days(nb_days.into());
-    let cron_vals = time_to_cron(time);
+
+    let cron_updates = get_cron_from_time(
+        time,
+        &[
+            CronColumn::Day,
+            CronColumn::Month,
+            CronColumn::Year
+        ]
+    );
 
     let update = ParseUpdate {
-        cron_updates: vec![(CronColumn::Day, cron_vals[&CronColumn::Day])],
+        cron_updates,
         remaining_words
     };
 
@@ -390,7 +405,8 @@ fn try_parse_weekday<'a, 'b>(state: &'b ParsingState<'a>) -> Option<ParseUpdate<
     Some(update)
 }
 
-fn time_to_cron(time: DateTime<chrono::Local>) -> HashMap<CronColumn, CronValue> {
+fn get_cron_from_time(time: DateTime<chrono::Local>, columns: &[CronColumn]) 
+    -> Vec<(CronColumn, CronValue)> {
 
     let (minute, hour, day, month, year) = (
         time.minute().try_into().unwrap(),
@@ -408,5 +424,6 @@ fn time_to_cron(time: DateTime<chrono::Local>) -> HashMap<CronColumn, CronValue>
         (CronColumn::Year, CronValue::On(year)),
     ]
     .into_iter()
+    .filter(|(col, _val)| columns.contains(col))
     .collect()
 }
