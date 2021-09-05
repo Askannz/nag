@@ -12,6 +12,7 @@ pub(super) fn parse<'a, 'b>(state: &'b ParsingState<'a>) -> Option<ParseUpdate<'
         &try_parse_day,
         &try_parse_month,
         &try_parse_clocktime,
+        &try_parse_duration,
         &try_parse_year,
         &try_parse_every,
         &try_parse_date_digits,
@@ -169,6 +170,62 @@ fn try_parse_clocktime<'a, 'b>(state: &'b ParsingState<'a>) -> Option<ParseUpdat
     };
 
     debug!("Parsed: clock time");
+
+    Some(update)
+}
+
+fn try_parse_duration<'a, 'b>(state: &'b ParsingState<'a>) -> Option<ParseUpdate<'a>> {
+
+    let (word, mut remaining_words) = match state.remaining_words {
+        ["in", word, rem_words @ ..] => (word, rem_words),
+        _ => return None
+    };
+
+    let reg = Regex::new(r"^[0-9]+").unwrap();
+    let reg_match = reg.find(word)?;
+
+    let value: i64 = reg_match.as_str().parse().ok()?;
+
+    let durations: Vec<_> = vec![
+        (r"m(in(utes?)?)?", Duration::minutes(value)),
+        (r"h(ours?)?", Duration::hours(value)),
+        (r"d(ays?)?", Duration::days(value)),
+        (r"w(eeks?)?", Duration::weeks(value)),
+    ]
+    .into_iter()
+    .map(|(reg, dur)| (Regex::new(reg).unwrap(), dur))
+    .collect();
+
+    let suffix = &word[reg_match.end()..].to_lowercase();
+
+    let get_duration = |text| {
+        durations
+            .iter()
+            .find_map(|(reg, dur)| {
+                if reg.is_match(text) { Some(dur) }
+                else { None }
+            })
+    };
+
+    let &duration = {
+        let mut res = get_duration(suffix);
+        if res.is_none() {
+            let (word, rem_words) = remaining_words.split_first()?;
+            remaining_words = rem_words;
+            res = get_duration(word);
+        }
+        res
+    }?;
+
+    let time = state.now + duration;
+    let cron_updates = time_to_cron(time).into_iter().collect();
+
+    let update = ParseUpdate {
+        cron_updates,
+        remaining_words
+    };
+
+    debug!("Parsed: duration");
 
     Some(update)
 }
