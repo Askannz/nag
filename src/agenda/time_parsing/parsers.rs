@@ -9,7 +9,6 @@ use super::{ParsingState, ParseUpdate};
 pub(super) fn parse<'a, 'b>(state: &'b ParsingState<'a>) -> Option<ParseUpdate<'a>> where 'a: 'b {
 
     let parsers: Vec<&ParserFunc> = vec![
-        &try_parse_preposition,
         &try_parse_day,
         &try_parse_month,
         &try_parse_clocktime,
@@ -28,41 +27,32 @@ pub(super) fn parse<'a, 'b>(state: &'b ParsingState<'a>) -> Option<ParseUpdate<'
 
 type ParserFunc<'a, 'b> = dyn Fn(&'b ParsingState<'a>) -> Option<ParseUpdate<'a>>;
 
-
-fn try_parse_preposition<'a, 'b>(state: &'b ParsingState<'a>) -> Option<ParseUpdate<'a>> {
-
-    let (first_word, remaining_words) = state.remaining_words.split_first()?;
-
-    let update = match *first_word {
-        "at" | "in" | "on" => ParseUpdate {
-            cron_updates: vec![],
-            remaining_words
-        },
-        _ => return None
-    };
-
-    debug!("Parsed: preposition");
-    Some(update)
-}
-
 fn try_parse_day<'a, 'b>(state: &'b ParsingState<'a>) -> Option<ParseUpdate<'a>> {
 
-    let reg = Regex::new(r"^([0-9]{1,2})((st)|(nd)|(rd)|(th))?$").unwrap();
-
-    let (word, remaining_words) = {
-        let (first_word, remaining_words) = state.remaining_words.split_first()?;
-        match *first_word {
-            "the" => remaining_words.split_first()?,
-            _ => (first_word, remaining_words)
-        }
+    let (&word, remaining_words, has_prep) = match state.remaining_words {
+        ["on", "the", word, rem_words @ ..] => (word, rem_words, true),
+        ["the", word, rem_words @ ..] => (word, rem_words, true),
+        [word, rem_words @ ..] => (word, rem_words, false),
+        _ => return  None
     };
 
-    let day: u64 = reg
-        .captures(word)?
+    let reg = Regex::new(r"^([0-9]{1,2})((st)|(nd)|(rd)|(th))?$").unwrap();
+    let word = word.to_lowercase();
+    let captures = reg.captures(word.as_str())?;
+
+    let day: u64 = captures
         .get(1)?
         .as_str()
         .parse()
         .ok()?;
+
+    let has_suffix = captures.get(2).is_some();
+
+    // Make sure we have at least some indication that the
+    // numbers represents a day
+    if !(has_prep || has_suffix) {
+        return None;
+    }
 
     let update = ParseUpdate {
         cron_updates: vec![(CronColumn::Day, CronValue::On(day))],
@@ -91,10 +81,15 @@ fn try_parse_month<'a, 'b>(state: &'b ParsingState<'a>) -> Option<ParseUpdate<'a
         "December"
     ];
 
-    let (first_word, remaining_words) = state.remaining_words.split_first()?;
+    let (word, remaining_words) = match state.remaining_words {
+        ["in", word, rem_words @ ..] => (word, rem_words),
+        ["on", word, rem_words @ ..] => (word, rem_words),
+        [word, rem_words @ ..] => (word, rem_words),
+        _ => return  None
+    };
 
     let month = {
-        let month_0 = MONTHS.iter().position(|m| m == first_word)?;
+        let month_0 = MONTHS.iter().position(|m| m == word)?;
         month_0 as u64 + 1
     };
 
@@ -110,10 +105,33 @@ fn try_parse_month<'a, 'b>(state: &'b ParsingState<'a>) -> Option<ParseUpdate<'a
 
 fn try_parse_clocktime<'a, 'b>(state: &'b ParsingState<'a>) -> Option<ParseUpdate<'a>> {
 
-    let reg = Regex::new(r"^([0-9]{1,2})(:([0-9]{1,2}))?([ap]m)?$").unwrap();
+    let (time_word, mut remaining_words, has_prep) = match state.remaining_words {
+        ["at", time_word, rem_words @ ..] => (*time_word, rem_words, true),
+        [time_word, rem_words @ ..] => (*time_word, rem_words, false),
+        _ => return  None
+    };
 
-    let (first_word, remaining_words) = state.remaining_words.split_first()?;
-    let captures = reg.captures(first_word)?;
+    let has_colon = time_word.contains(":");
+
+    let time_reg = Regex::new(r"^([0-9]{1,2})(:([0-9]{1,2}))?([ap]m)?$").unwrap();
+    let time_word = time_word.to_lowercase();
+    let captures = time_reg.captures(time_word.as_str())?;
+
+    let am_pm = captures.get(4)
+        .map(|am_pm| am_pm.as_str().to_lowercase())
+        .or_else(|| { // check for am/pm in the next word
+            let mut res = None;
+            if let Some((&w, new_rem)) = remaining_words.split_first() {
+                let w = w.to_lowercase();
+                if w == "am" || w == "pm" {
+                    res = Some(w);
+                    remaining_words = new_rem;
+                }
+            }
+            res
+        });
+
+    let has_am_pm = am_pm.is_some();
 
     let hour: u64 = {
 
@@ -122,13 +140,11 @@ fn try_parse_clocktime<'a, 'b>(state: &'b ParsingState<'a>) -> Option<ParseUpdat
             .parse()
             .ok()?;
 
-        let am_pm_str = captures.get(4)?.as_str();
-
-        match am_pm_str {
-            "am" if raw_val <= 12  => Some(raw_val % 12),
-            "pm" if raw_val <= 12  => Some((raw_val % 12) + 12),
-            _ if raw_val < 24      => Some(raw_val),
-            _                       => None
+        match am_pm.as_deref() {
+            Some("am") if raw_val <= 12  => Some(raw_val % 12),
+            Some("pm") if raw_val <= 12  => Some((raw_val % 12) + 12),
+            _ if raw_val < 24            => Some(raw_val),
+            _                            => None
         }?
     };
 
@@ -137,6 +153,12 @@ fn try_parse_clocktime<'a, 'b>(state: &'b ParsingState<'a>) -> Option<ParseUpdat
         .map(|s| s.as_str().parse().ok())
         .flatten()
         .unwrap_or(0);
+
+    // Make sure we have at least some indication that the
+    // numbers represents a time of day
+    if !(has_prep || has_colon || has_am_pm) {
+        return None;
+    }
 
     let update = ParseUpdate {
         cron_updates: vec![
@@ -153,11 +175,15 @@ fn try_parse_clocktime<'a, 'b>(state: &'b ParsingState<'a>) -> Option<ParseUpdat
 
 fn try_parse_year<'a, 'b>(state: &'b ParsingState<'a>) -> Option<ParseUpdate<'a>> {
 
+    let (word, remaining_words) = match state.remaining_words {
+        ["in", word, rem_words @ ..] => (word, rem_words),
+        [word, rem_words @ ..] => (word, rem_words),
+        _ => return None
+    };
+
     let reg = Regex::new(r"^[0-9]{4}$").unwrap();
 
-    let (first_word, remaining_words) = state.remaining_words.split_first()?;
-
-    let year: u64 = reg.captures(first_word)?
+    let year: u64 = reg.captures(word)?
         .get(0)?
         .as_str()
         .parse()
@@ -175,20 +201,25 @@ fn try_parse_year<'a, 'b>(state: &'b ParsingState<'a>) -> Option<ParseUpdate<'a>
 
 fn try_parse_every<'a, 'b>(state: &'b ParsingState<'a>) -> Option<ParseUpdate<'a>> {
 
-    let (w1, remaining_words) = state.remaining_words.split_first()?;
+    let remaining_words = match state.remaining_words {
+        ["on", rem_words @ ..] => rem_words,
+        [rem_words @ ..] => rem_words
+    };
 
-    if *w1 != "every" {
+    let (&w1, remaining_words) = remaining_words.split_first()?;
+
+    if w1 != "every" {
         return None
     }
 
-    let (w2, remaining_words) = remaining_words.split_first()?;
+    let (&w2, remaining_words) = remaining_words.split_first()?;
 
-    let cron_col = CRON_COLUMNS
+    let &cron_col = CRON_COLUMNS
         .iter()
-        .find(|col| col.unit() == *w2)?;
+        .find(|col| col.unit() == w2)?;
 
     let update = ParseUpdate {
-        cron_updates: vec![(*cron_col, CronValue::Every)],
+        cron_updates: vec![(cron_col, CronValue::Every)],
         remaining_words
     };
 
@@ -201,9 +232,14 @@ fn try_parse_every<'a, 'b>(state: &'b ParsingState<'a>) -> Option<ParseUpdate<'a
 
 fn try_parse_date_digits<'a, 'b>(state: &'b ParsingState<'a>) -> Option<ParseUpdate<'a>> {
 
-    let reg = Regex::new(r"^([0-9]{1,2})/([0-9]{1,2})(/([0-9]{4}))?$").unwrap();
+    let (word, remaining_words) = match state.remaining_words {
+        ["on", "the", word, rem_words @ ..] => (word, rem_words),
+        ["on", word, rem_words @ ..] => (word, rem_words),
+        [word, rem_words @ ..] => (word, rem_words),
+        _ => return None
+    };
 
-    let (word, remaining_words) = state.remaining_words.split_first()?;
+    let reg = Regex::new(r"^([0-9]{1,2})/([0-9]{1,2})(/([0-9]{4}))?$").unwrap();
     let captures = reg.captures(word)?;
 
     let day: u64 = captures.get(1)?.as_str().parse().ok()?;
@@ -267,10 +303,14 @@ fn try_parse_weekday<'a, 'b>(state: &'b ParsingState<'a>) -> Option<ParseUpdate<
         "Sunday"
     ];
 
-    let (first_word, remaining_words) = state.remaining_words.split_first()?;
+    let (word, remaining_words) = match state.remaining_words {
+        ["on", word, rem_words @ ..] => (word, rem_words),
+        [word, rem_words @ ..] => (word, rem_words),
+        _ => return None
+    };
 
     let event_offset: u32 = DAYS
-        .iter().position(|d| d.to_lowercase() == first_word.to_lowercase())?
+        .iter().position(|d| d.to_lowercase() == word.to_lowercase())?
         .try_into().unwrap();
     let current_offset = state.now.date().weekday().num_days_from_monday();
 
