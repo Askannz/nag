@@ -406,18 +406,21 @@ fn make_events_print_list(events: HashMap<&u64, &AgendaEvent>) -> Vec<String> {
 
 fn format_time_diff(dt: chrono::Duration) -> String {
 
-    let (weeks, days, hours, minutes) = (
+    let (weeks, days, hours, minutes, seconds) = (
         dt.num_weeks(),
         dt.num_days(),
         dt.num_hours(),
-        dt.num_minutes()
+        dt.num_minutes(),
+        dt.num_seconds()
     );
 
     let mut text = vec![];
     if weeks > 0 { text.push(format!("{} weeks", weeks)); }
     if days > 0 { text.push(format!("{} days", days % 7)); }
     if hours > 0 { text.push(format!("{} hours", hours % 24)); }
-    if minutes > 0 { 
+    if minutes > 0 {
+        let mut minutes = minutes;
+        if seconds >= 30 { minutes += 1; }
         text.push(format!("{} minutes", minutes % 60));
     } else {
         text.push("less than a minute".to_owned());
