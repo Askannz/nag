@@ -11,6 +11,7 @@ fn main() {
 
     env_logger::Builder::new()
         .filter_module("nag", log::LevelFilter::max())
+        .parse_default_env()
         .init();
 
     let (sender, receiver) = channel();
