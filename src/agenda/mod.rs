@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
-use std::sync::mpsc::Sender;
+use crossbeam_channel::Sender;
 use std::time::Duration;
 use serde::{Deserialize, Serialize};
 use anyhow::{anyhow, Context, bail};

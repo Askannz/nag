@@ -1,5 +1,5 @@
 use std::sync::{Arc, Mutex};
-use std::sync::mpsc::Sender;
+use crossbeam_channel::Sender;
 use std::path::{Path, PathBuf};
 use serde::{Deserialize, Serialize};
 use log::{debug, info, warn, error};
