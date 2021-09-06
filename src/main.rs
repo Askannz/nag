@@ -21,16 +21,14 @@ fn main() {
         .init();
 
     let config_path = Path::new(CONFIG_PATH);
-    let config = match Config::restore(config_path) {
-        Ok(config) => config,
-        Err(err) => {
+    let config = Config::restore(config_path)
+        .unwrap_or_else(|err| {
             warn!("No config restored: {}", err);
             info!("Creating new default config");
             let config: Config = Default::default();
             config.save(config_path);
             config
-        }
-    };
+        });
 
     if !config.data_path.exists() {
         panic!(

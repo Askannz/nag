@@ -25,14 +25,12 @@ impl Telegram {
         let context_path = config.data_path.join("telegram.json");
         debug!("Telegram context path: {}", context_path.to_string_lossy());
 
-        let context = match TelegramContext::restore(&context_path) {
-            Ok(context) => context,
-            Err(err) => {
+        let context = TelegramContext::restore(&context_path)
+            .unwrap_or_else(|err| {
                 warn!("No Telegram context restored: {}", err);
                 info!("Creating new context");
                 TelegramContext::new()
-            }
-        };
+            });
         let context = Arc::new(Mutex::new(context));
         
         let telegram = Telegram { 

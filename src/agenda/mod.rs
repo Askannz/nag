@@ -33,14 +33,12 @@ impl Agenda {
         let state_path = config.data_path.join("agenda.json");
         debug!("Agenda state path: {}", state_path.to_string_lossy());
 
-        let state = match AgendaState::restore(&state_path) {
-            Ok(context) => context,
-            Err(err) => {
+        let state = AgendaState::restore(&state_path)
+            .unwrap_or_else(|err| {
                 warn!("No agenda state restored: {}", err);
                 info!("Creating new empty agenda");
                 AgendaState::new()
-            }
-        };
+            });
         let state = Arc::new(Mutex::new(state));
     
         Agenda { 
