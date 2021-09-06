@@ -141,11 +141,19 @@ fn try_parse_clocktime<'a, 'b>(state: &'b ParsingState<'a>) -> Option<ParseUpdat
             .parse()
             .ok()?;
 
+        if raw_val >= 24 { return None; }
+
         match am_pm.as_deref() {
+
+            // Assume 12h format
             Some("am") if raw_val <= 12  => Some(raw_val % 12),
             Some("pm") if raw_val <= 12  => Some((raw_val % 12) + 12),
-            _ if raw_val < 24            => Some(raw_val),
-            _                            => None
+
+            // Assume 24h format
+            None => Some(raw_val),
+
+            // Failed
+            _ => None
         }?
     };
 
