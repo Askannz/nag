@@ -4,12 +4,14 @@ use log::debug;
 
 mod cronline_builder;
 mod parsers;
+#[cfg(test)]
+mod tests;
 
 use super::Instant;
 use super::cron::{CronColumn, CronValue, Cronline};
 use cronline_builder::CronlineBuilder;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub(super) struct CronlineResult<'a> { 
     pub cronline: Cronline,
     pub remaining_words: &'a[&'a str],
