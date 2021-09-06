@@ -1,5 +1,4 @@
 use chrono::DateTime;
-use anyhow::Result;
 use log::debug;
 
 mod cronline_builder;
@@ -24,7 +23,7 @@ struct ParseUpdate<'a> {
     remaining_words: &'a[&'a str]
 }
 
-pub(super) fn parse_cronline<'a>(now: &DateTime<chrono::Local>, words: &'a [&'a str]) -> Result<CronlineResult<'a>> {
+pub(super) fn parse_cronline<'a>(now: &DateTime<chrono::Local>, words: &'a [&'a str]) -> anyhow::Result<CronlineResult<'a>> {
 
     let mut state = ParsingState::new(words, now.clone());
 
@@ -82,11 +81,11 @@ impl<'a> ParsingState<'a> {
         }
     }
 
-    fn update(&mut self, col: CronColumn, val: CronValue) -> Result<()> {
+    fn update(&mut self, col: CronColumn, val: CronValue) -> anyhow::Result<()> {
         self.cronline_builder.set(col, val)
     }
 
-    fn finalize(mut self, now: &Instant) -> Result<CronlineResult<'a>> {
+    fn finalize(mut self, now: &Instant) -> anyhow::Result<CronlineResult<'a>> {
 
         let comment = self.cronline_builder.autofill(now);
 
