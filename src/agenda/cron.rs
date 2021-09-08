@@ -38,8 +38,8 @@ impl CronColumn {
             CronColumn::Year   => "year",
             CronColumn::Month  => "month",
             CronColumn::Day    => "day",
-            CronColumn::Hour   => "minute",
-            CronColumn::Minute => "hour"
+            CronColumn::Hour   => "hour",
+            CronColumn::Minute => "minute"
         }    
     }
 }
