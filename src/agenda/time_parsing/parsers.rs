@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use std::convert::TryInto;
 use log::debug;
 use regex::Regex;

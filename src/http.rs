@@ -3,8 +3,6 @@ use simple_server::{Server, Method, StatusCode};
 use crate::BotUpdate;
 use crate::config::Config;
 
-const PORT: &str = "8123";
-
 #[allow(non_camel_case_types)]
 pub struct HTTP_Notifier {
     config: Config,
