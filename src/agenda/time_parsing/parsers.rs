@@ -288,12 +288,23 @@ fn try_parse_every<'a, 'b>(state: &'b ParsingState<'a>) -> Option<ParseUpdate<'a
 
     let (&w2, remaining_words) = remaining_words.split_first()?;
 
-    let &cron_col = CRON_COLUMNS
-        .iter()
-        .find(|col| col.unit() == w2)?;
+    let cron_updates = match w2 {
+
+        "hour" => vec![
+            (CronColumn::Hour, CronValue::Every),
+            (CronColumn::Minute, CronValue::On(0)),
+        ],
+
+        _ => {
+            let &cron_col = CRON_COLUMNS
+                .iter()
+                .find(|col| col.unit() == w2)?;
+            vec![(cron_col, CronValue::Every)]
+        }
+    };
 
     let update = ParseUpdate {
-        cron_updates: vec![(cron_col, CronValue::Every)],
+        cron_updates,
         remaining_words
     };
 
