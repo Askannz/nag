@@ -49,6 +49,8 @@ fn main() {
     rayon::spawn(agenda.get_loop());
     rayon::spawn(http_notifier.get_loop());
 
+    telegram.send(&format!("Nag version {}", VERSION)).unwrap();
+
     loop {
 
         let update = receiver.recv().unwrap();
