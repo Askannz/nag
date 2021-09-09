@@ -18,4 +18,4 @@ rayon = "1.5"
 regex = "1.5"
 simple-server = "0.4"
 crossbeam-channel = "0.5"
-
+clap = "3.0.0-beta.4"

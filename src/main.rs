@@ -6,13 +6,13 @@ mod config;
 use std::path::Path;
 use std::default::Default;
 use crossbeam_channel::unbounded;
+use clap::{Clap, AppSettings};
 use log::{debug, info, warn};
 use config::Config;
 use telegram::Telegram;
 use agenda::Agenda;
 use http::HTTP_Notifier;
 
-const CONFIG_PATH: &str = "config.json";
 fn main() {
 
     env_logger::Builder::new()
@@ -20,7 +20,9 @@ fn main() {
         .parse_default_env()
         .init();
 
-    let config_path = Path::new(CONFIG_PATH);
+    let opts = Opts::parse();
+
+    let config_path = Path::new(&opts.config);
     let config = Config::restore(config_path)
         .unwrap_or_else(|err| {
             warn!("No config restored: {}", err);
@@ -64,4 +66,16 @@ fn main() {
 pub enum BotUpdate {
     MsgIn(String),
     MsgOut(String)
+}
+
+const DEFAULT_CONFIG_PATH: &str = "config.json";
+const VERSION: &'static str = env!("CARGO_PKG_VERSION");
+const AUTHOR: &'static str = env!("CARGO_PKG_AUTHORS");
+
+#[derive(Clap, Debug)]
+#[clap(version=VERSION, author=AUTHOR)]
+#[clap(setting = AppSettings::ColoredHelp)]
+struct Opts {
+    #[clap(short, long, default_value=DEFAULT_CONFIG_PATH)]
+    config: String
 }
