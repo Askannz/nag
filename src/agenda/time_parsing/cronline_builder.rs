@@ -117,10 +117,10 @@ impl CronlineBuilder {
             debug!("Missing columns: {:?}", cols_diff);
             let cols_str = cols_diff
                 .iter()
-                .map(|c| format!("{:?}", c))
+                .map(|c| format!("{:?}", c).to_lowercase())
                 .collect::<Vec<String>>()
                 .join(", ");
-            bail!("incomplete cronline: missing {}", cols_str);
+            bail!("missing {}", cols_str);
         }
 
         let line: [CronValue; 5] = {
