@@ -137,7 +137,7 @@ impl Agenda {
             cronline,
             remaining_words,
             comment
-        } = parse_cronline(&now, words).context("Invalid command")?;
+        } = parse_cronline(&now, words).context("cannot parse time")?;
 
         debug!("Parsed cronline {:?}", cronline);
         debug!("Remaining words {:?}", remaining_words);
@@ -361,7 +361,7 @@ fn format_error(err: anyhow::Error) -> String {
         msg = format!("{}{}{}", msg, prefix, err2);
     }
 
-    msg
+    format!("Error: {}", msg)
 }
 
 fn make_tags_print_list(events: &HashMap<u64, AgendaEvent>) -> Vec<String> {

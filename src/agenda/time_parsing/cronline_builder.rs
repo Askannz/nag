@@ -120,7 +120,7 @@ impl CronlineBuilder {
                 .map(|c| format!("{:?}", c))
                 .collect::<Vec<String>>()
                 .join(", ");
-            bail!("Incomplete cronline: missing {}", cols_str);
+            bail!("incomplete cronline: missing {}", cols_str);
         }
 
         let line: [CronValue; 5] = {
