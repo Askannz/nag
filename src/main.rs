@@ -16,7 +16,7 @@ const CONFIG_PATH: &str = "config.json";
 fn main() {
 
     env_logger::Builder::new()
-        //.filter_module("nag", log::LevelFilter::max())
+        .filter_module("nag", log::LevelFilter::Debug)
         .parse_default_env()
         .init();
 
