@@ -142,6 +142,10 @@ impl Agenda {
         debug!("Parsed cronline {:?}", cronline);
         debug!("Remaining words {:?}", remaining_words);
 
+        if remaining_words.is_empty() {
+            bail!("no message specified")
+        }
+
         let mut state = self.state.lock().unwrap();
 
         let new_id = (0..).find(|id| !state.events.contains_key(&id)).unwrap();
