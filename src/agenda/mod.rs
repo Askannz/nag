@@ -124,21 +124,6 @@ impl Agenda {
 
         self.sender.send(BotUpdate::MsgOut(msg)).unwrap();
     }
-}
-
-
-fn format_error(err: anyhow::Error) -> String {
-
-    let mut msg = String::new();
-    for (i, err2) in err.chain().enumerate() {
-        let prefix = if i == 0 { "" } else { ": " };
-        msg = format!("{}{}{}", msg, prefix, err2);
-    }
-
-    msg
-}
-
-impl Agenda {
 
     fn add_event(&self, words: &[&str]) -> anyhow::Result<String> {
 
@@ -366,6 +351,17 @@ impl Agenda {
 
         Ok(msg)
     }
+}
+
+fn format_error(err: anyhow::Error) -> String {
+
+    let mut msg = String::new();
+    for (i, err2) in err.chain().enumerate() {
+        let prefix = if i == 0 { "" } else { ": " };
+        msg = format!("{}{}{}", msg, prefix, err2);
+    }
+
+    msg
 }
 
 fn make_tags_print_list(events: &HashMap<u64, AgendaEvent>) -> Vec<String> {
