@@ -99,8 +99,8 @@ impl Telegram {
     
                     {
                         let mut context = context.lock().unwrap();
-                        context.update_chat_id(chat_id);
-                        context.save(&context_path);
+                        let update = context.update_chat_id(chat_id);
+                        if update { context.save(&context_path) };
                     }
                 }
     
@@ -188,12 +188,13 @@ impl TelegramContext {
         .expect(&format!("Cannot save Telegram context to {}", path_str));
     }
 
-    fn update_chat_id(&mut self, new_id: u32) {
+    fn update_chat_id(&mut self, new_id: u32) -> bool{
 
         let update = self.chat_id.map_or(true, |chat_id| chat_id != new_id);
         if update {
             info!("Active ChatID changed to {}", new_id);
-            self.chat_id = Some(new_id);   
+            self.chat_id = Some(new_id);
         }
+        update
     }
 }
