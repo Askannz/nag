@@ -41,7 +41,7 @@ fn main() {
 
     let (sender, receiver) = unbounded();
 
-    let mut telegram = Telegram::new(&config, &sender).unwrap();
+    let mut telegram = Telegram::new(&config, &sender);
     let mut agenda = Agenda::new(&config, &sender);
     let http_notifier = HTTP_Notifier::new(&config, &sender);
 

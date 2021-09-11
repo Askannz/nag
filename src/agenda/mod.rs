@@ -438,12 +438,14 @@ struct AgendaState {
 impl AgendaState {
 
     fn restore(state_path: &Path) -> anyhow::Result<Self> {
-        info!(
-            "Attempting to restore agenda from {}",
-            state_path.to_string_lossy()
-        );
+
+        let path_str = state_path.to_string_lossy();
+
+        info!("Attempting to restore agenda from {}", path_str);
         let data = std::fs::read_to_string(&state_path)?;
-        let state: Self = serde_json::from_str(&data)?;
+        let state: Self = serde_json::from_str(&data)
+            .map_err(anyhow::Error::new)
+            .expect(&format!("Error parsing agenda data from {}", path_str));
         Ok(state)
     }
 
@@ -453,11 +455,14 @@ impl AgendaState {
 
     fn save(&self, state_path: &Path) {
 
+        let path_str = state_path.to_string_lossy();
+
         || -> anyhow::Result<()> {
-            info!("Saving agenda to: {}", state_path.to_string_lossy());
+            info!("Saving agenda to: {}", path_str);
             let data = serde_json::to_string_pretty(self)?;
             std::fs::write(&state_path, data)?;
             Ok(())
-        }().expect("Cannot save agenda");
+        }()
+        .expect(&format!("Cannot save agenda data to {}", path_str));
     }
 }

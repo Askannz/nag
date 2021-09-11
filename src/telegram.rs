@@ -17,9 +17,10 @@ pub struct Telegram {
 
 impl Telegram {
 
-    pub fn new(config: &Config, sender: &Sender<BotUpdate>) -> anyhow::Result<Self> {
+    pub fn new(config: &Config, sender: &Sender<BotUpdate>) -> Self {
 
-        let token = std::env::var("NAG_TELEGRAM_TOKEN")?;
+        let token = std::env::var("NAG_TELEGRAM_TOKEN")
+            .expect("Environment variable NAG_TELEGRAM_TOKEN not set");
         let api_url = format!("https://api.telegram.org/bot{}", token);
 
         let context_path = config.data_path.join("telegram.json");
@@ -40,7 +41,7 @@ impl Telegram {
             sender: sender.clone()
         };
 
-        Ok(telegram)
+        telegram
     }
 
     pub fn send(&mut self, text: &str) -> anyhow::Result<()> {
@@ -157,12 +158,17 @@ struct TelegramContext {
 impl TelegramContext {
 
     fn restore(context_path: &Path) -> anyhow::Result<TelegramContext> {
+
+        let path_str = context_path.to_string_lossy();
+
         info!(
             "Attempting to restore Telegram context from {}",
-            context_path.to_string_lossy()
+            path_str
         );
         let data = std::fs::read_to_string(&context_path)?;
-        let context = serde_json::from_str(&data)?;
+        let context = serde_json::from_str(&data)
+            .map_err(anyhow::Error::new)
+            .expect(&format!("Error parsing Telegram context from {}", path_str));
         Ok(context)
     }
 
@@ -172,12 +178,15 @@ impl TelegramContext {
 
     fn save(&self, context_path: &Path) {
 
+        let path_str = context_path.to_string_lossy();
+
         || -> anyhow::Result<()> {
-            info!("Saving Telegram context to: {}", context_path.to_string_lossy());
+            info!("Saving Telegram context to: {}", path_str);
             let data = serde_json::to_string_pretty(self)?;
             std::fs::write(&context_path, data)?;
             Ok(())
-        }().expect("Cannot save Telegram context");
+        }()
+        .expect(&format!("Cannot save Telegram context to {}", path_str));
     }
 
     fn update_chat_id(&mut self, new_id: u32) {
