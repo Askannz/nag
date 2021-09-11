@@ -2,6 +2,7 @@ use std::convert::TryInto;
 use log::debug;
 use regex::Regex;
 use chrono::{DateTime, Datelike, Duration, Timelike};
+use crate::DateFormat;
 use super::super::cron::{CronColumn, CronValue, CRON_COLUMNS};
 use super::{ParsingState, ParseUpdate};
 
@@ -327,8 +328,13 @@ fn try_parse_date_digits<'a, 'b>(state: &'b ParsingState<'a>) -> Option<ParseUpd
     let reg = Regex::new(r"^([0-9]{1,2})/([0-9]{1,2})(/([0-9]{4}))?$").unwrap();
     let captures = reg.captures(word)?;
 
-    let day: u64 = captures.get(1)?.as_str().parse().ok()?;
-    let month: u64 = captures.get(2)?.as_str().parse().ok()?;
+    let d1: u64 = captures.get(1)?.as_str().parse().ok()?;
+    let d2: u64 = captures.get(2)?.as_str().parse().ok()?;
+
+    let (day, month) = match state.opts.date_format {
+        DateFormat::DMY => (d1, d2),
+        DateFormat::MDY => (d2, d1)
+    };
 
     let update = ParseUpdate {
         cron_updates: vec![

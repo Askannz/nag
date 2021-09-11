@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 use chrono::{Datelike, Timelike};
+use crate::{Opts, DateFormat};
 use super::Instant;
 
 
@@ -80,17 +81,22 @@ impl Cronline {
         self.line[col.rank()]
     }
 
-    pub fn msg_format(&self) -> String {
+    pub fn msg_format(&self, opts: &Opts) -> String {
 
         let format_val = |cronval, width| match cronval {
             CronValue::Every => "_".repeat(width),
             CronValue::On(val) => format!("{:0>1$}", val, width)
         };
 
+        let (c1, c2) = match opts.date_format {
+            DateFormat::DMY => (CronColumn::Day, CronColumn::Month),
+            DateFormat::MDY => (CronColumn::Month, CronColumn::Day),
+        };
+
         format!(
             "{}/{}/{} {}:{}",
-            format_val(self.get(CronColumn::Day), 2),
-            format_val(self.get(CronColumn::Month), 2),
+            format_val(self.get(c1), 2),
+            format_val(self.get(c2), 2),
             format_val(self.get(CronColumn::Year), 4),
             format_val(self.get(CronColumn::Hour), 2),
             format_val(self.get(CronColumn::Minute), 2)

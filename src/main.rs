@@ -59,6 +59,14 @@ pub struct Opts {
     #[clap(required=true, group="aaa")]
     data_path: PathBuf,
 
+    #[clap(
+        long, arg_enum, default_value="dmy",
+        about=
+            "Day/Month/Year or Month/Day/Year.\n\
+            Affects both parsing and displaying.\n"
+    )]
+    date_format: DateFormat,
+
     #[clap(long, parse(try_from_str), default_value="true")]
     http_endpoint: bool,
 

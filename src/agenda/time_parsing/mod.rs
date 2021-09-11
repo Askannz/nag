@@ -6,6 +6,7 @@ mod parsers;
 #[cfg(test)]
 mod tests;
 
+use crate::Opts;
 use super::Instant;
 use super::cron::{CronColumn, CronValue, Cronline};
 use cronline_builder::CronlineBuilder;
@@ -23,9 +24,11 @@ struct ParseUpdate<'a> {
     remaining_words: &'a[&'a str]
 }
 
-pub(super) fn parse_cronline<'a>(now: &DateTime<chrono::Local>, words: &'a [&'a str]) -> anyhow::Result<CronlineResult<'a>> {
+pub(super) fn parse_cronline<'a>(
+    opts: &'a Opts, now: &DateTime<chrono::Local>, words: &'a [&'a str]
+) -> anyhow::Result<CronlineResult<'a>> {
 
-    let mut state = ParsingState::new(words, now.clone());
+    let mut state = ParsingState::new(opts, words, now.clone());
 
     loop {
 
@@ -67,17 +70,19 @@ pub(super) fn parse_cronline<'a>(now: &DateTime<chrono::Local>, words: &'a [&'a 
 struct ParsingState<'a> {
     remaining_words: &'a[&'a str],
     cronline_builder: CronlineBuilder,
-    now: DateTime<chrono::Local>
+    now: DateTime<chrono::Local>,
+    opts: &'a Opts
 }
 
 
 impl<'a> ParsingState<'a> {
 
-    fn new(words: &'a[&'a str], now: DateTime<chrono::Local>) -> Self {
+    fn new(opts: &'a Opts, words: &'a[&'a str], now: DateTime<chrono::Local>) -> Self {
         ParsingState {
             remaining_words: words,
             cronline_builder: CronlineBuilder::new(),
-            now
+            now,
+            opts
         }
     }
 

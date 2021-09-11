@@ -20,7 +20,8 @@ use event::AgendaEvent;
 pub(super) struct Agenda {
     state: Arc<Mutex<AgendaState>>,
     sender: Sender<BotUpdate>,
-    state_path: PathBuf
+    state_path: PathBuf,
+    opts: Opts
 }
 
 type Instant = chrono::DateTime<chrono::offset::Local>;
@@ -43,7 +44,8 @@ impl Agenda {
         Agenda { 
             state,
             sender: sender.clone(),
-            state_path
+            state_path,
+            opts: opts.clone()
         }
     }
 
@@ -136,7 +138,8 @@ impl Agenda {
             cronline,
             remaining_words,
             comment
-        } = parse_cronline(&now, words).context("cannot parse time")?;
+        } = parse_cronline(&self.opts, &now, words)
+            .context("cannot parse time")?;
 
         debug!("Parsed cronline {:?}", cronline);
         debug!("Remaining words {:?}", remaining_words);
@@ -276,7 +279,7 @@ impl Agenda {
         let msg = [
             make_tags_print_list(&state.events),
             vec!["\n<b>Untagged events:</b>".to_owned()],
-            make_events_print_list(untagged_events)
+            make_events_print_list(&self.opts, untagged_events)
         ]
         .concat().join("\n");
 
@@ -307,7 +310,7 @@ impl Agenda {
 
         let msg = [
             vec![format!("<b>{}:</b>", tag)],
-            make_events_print_list(selected_events)
+            make_events_print_list(&self.opts, selected_events)
         ]
         .concat().join("\n");
 
@@ -384,7 +387,9 @@ fn make_tags_print_list(events: &HashMap<u64, AgendaEvent>) -> Vec<String> {
 }
 
 
-fn make_events_print_list(events: HashMap<&u64, &AgendaEvent>) -> Vec<String> {
+fn make_events_print_list(
+    opts: &Opts, events: HashMap<&u64, &AgendaEvent>
+) -> Vec<String> {
 
     let mut ids_list: Vec<&u64> = events.keys().cloned().collect();
     ids_list.sort();
@@ -395,7 +400,7 @@ fn make_events_print_list(events: HashMap<&u64, &AgendaEvent>) -> Vec<String> {
         
         format!(
             "<pre>  {} - [{}] {}</pre>",
-            event.cronline.msg_format(),
+            event.cronline.msg_format(opts),
             id,
             event.text
         )

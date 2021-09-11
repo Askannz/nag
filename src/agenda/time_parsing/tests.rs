@@ -1,4 +1,7 @@
 use chrono::{Duration, TimeZone};
+use clap::Clap;
+use crate::Opts;
+
 use super::{Cronline, parse_cronline};
 
 #[test]
@@ -94,11 +97,12 @@ fn single_digits() {
 #[should_panic]
 fn fail_every() {
 
+    let opts = Opts::parse_from(["data/"]);
     let now = chrono::Local.ymd(2000, 01, 01).and_hms(08, 00, 00);
     let msg = "every year at 7am";
 
     let words: Vec<&str> = msg.split_whitespace().collect();
-    parse_cronline(&now, &words).unwrap();
+    parse_cronline(&opts, &now, &words).unwrap();
 
 }
 
@@ -116,8 +120,9 @@ struct TestParams<'a> {
 #[cfg(test)]
 fn test_parse(params: TestParams) {
 
+    let opts = Opts::parse_from(["data/"]);
     let words: Vec<&str> = params.msg.split_whitespace().collect();
-    let res = parse_cronline(&params.now, &words).unwrap();
+    let res = parse_cronline(&opts, &params.now, &words).unwrap();
 
     assert_eq!(res.cronline, params.exp_cronline);
     assert_eq!(res.remaining_words, params.exp_rem_words);
