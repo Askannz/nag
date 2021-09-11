@@ -14,24 +14,19 @@ pub const CRON_COLUMNS: [CronColumn; 5] = [
 
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Deserialize, Serialize)]
+#[repr(usize)]
 pub enum CronColumn {
-    Year,
-    Month,
-    Day,
-    Hour,
-    Minute
+    Minute = 0,
+    Hour = 1,
+    Day = 2,
+    Month = 3,
+    Year = 4
 }
 
 impl CronColumn {
 
     pub fn rank(&self) -> usize {
-        match self {
-            CronColumn::Year   => 4,
-            CronColumn::Month  => 3,
-            CronColumn::Day    => 2,
-            CronColumn::Hour   => 1,
-            CronColumn::Minute => 0
-        }
+        *self as usize
     }
 
     pub fn unit(&self) -> &str {
