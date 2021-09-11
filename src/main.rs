@@ -1,14 +1,12 @@
 mod telegram;
 mod agenda;
 mod http;
-mod config;
 
-use std::path::Path;
-use std::default::Default;
+use std::path::PathBuf;
+use std::str::FromStr;
 use crossbeam_channel::unbounded;
-use clap::{Clap, AppSettings};
-use log::{debug, info, warn};
-use config::Config;
+use clap::{Clap, AppSettings, ArgEnum};
+use log::{debug};
 use telegram::Telegram;
 use agenda::Agenda;
 use http::HTTP_Notifier;
@@ -22,34 +20,17 @@ fn main() {
 
     let opts = Opts::parse();
 
-    let config_path = Path::new(&opts.config);
-    let config = Config::restore(config_path)
-        .unwrap_or_else(|err| {
-            warn!("No config restored: {}", err);
-            info!("Creating new default config");
-            let config: Config = Default::default();
-            config.save(config_path);
-            config
-        });
-
-    if !config.data_path.exists() {
-        panic!(
-            "Data path {} does not exist",
-            config.data_path.to_string_lossy()
-        );
-    }
-
     let (sender, receiver) = unbounded();
 
-    let mut telegram = Telegram::new(&config, &sender);
-    let mut agenda = Agenda::new(&config, &sender);
-    let http_notifier = HTTP_Notifier::new(&config, &sender);
+    let mut telegram = Telegram::new(&opts, &sender);
+    let mut agenda = Agenda::new(&opts, &sender);
+    let http_notifier = HTTP_Notifier::new(&opts, &sender);
 
     rayon::spawn(telegram.get_loop());
     rayon::spawn(agenda.get_loop());
     rayon::spawn(http_notifier.get_loop());
 
-    telegram.send(&format!("Nag version {}", VERSION)).unwrap();
+    telegram.send(&format!("Nag version {}", env!("CARGO_PKG_VERSION"))).unwrap();
 
     loop {
 
@@ -70,14 +51,38 @@ pub enum BotUpdate {
     MsgOut(String)
 }
 
-const DEFAULT_CONFIG_PATH: &str = "config.json";
-const VERSION: &'static str = env!("CARGO_PKG_VERSION");
-const AUTHOR: &'static str = env!("CARGO_PKG_AUTHORS");
-
-#[derive(Clap, Debug)]
-#[clap(version=VERSION, author=AUTHOR)]
+#[derive(Clap, Debug, Clone)]
+#[clap(version, author)]
 #[clap(setting = AppSettings::ColoredHelp)]
-struct Opts {
-    #[clap(short, long, default_value=DEFAULT_CONFIG_PATH)]
-    config: String
+#[clap(setting = AppSettings::DeriveDisplayOrder)]
+pub struct Opts {
+
+    #[clap(required=true, group="aaa")]
+    data_path: PathBuf,
+
+    #[clap(long, parse(try_from_str), default_value="true")]
+    http_endpoint: bool,
+
+    #[clap(long, default_value="0.0.0.0")]
+    endpoint_host: String,
+
+    #[clap(long, parse(try_from_str), default_value="8123")]
+    endpoint_port: u16
+}
+
+#[derive(ArgEnum, Clap, Clone, Debug)]
+pub enum DateFormat {
+    MDY,
+    DMY
+}
+
+impl FromStr for DateFormat {
+    type Err = anyhow::Error;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_lowercase().as_str() {
+            "dmy" => Ok(Self::DMY),
+            "mdy" => Ok(Self::MDY),
+            _ => anyhow::bail!("Cannot parse {}", s)
+        }
+    }
 }

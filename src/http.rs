@@ -1,20 +1,19 @@
 use crossbeam_channel::Sender;
 use simple_server::{Server, Method, StatusCode};
-use crate::BotUpdate;
-use crate::config::Config;
+use crate::{Opts, BotUpdate};
 
 #[allow(non_camel_case_types)]
 pub struct HTTP_Notifier {
-    config: Config,
+    opts: Opts,
     sender: Sender<BotUpdate>
 }
 
 
 impl HTTP_Notifier {
 
-    pub fn new(config: &Config, sender: &Sender<BotUpdate>) -> Self {
+    pub fn new(opts: &Opts, sender: &Sender<BotUpdate>) -> Self {
         HTTP_Notifier {
-            config: config.clone(),
+            opts: opts.clone(),
             sender: sender.clone()
         }
     }
@@ -22,7 +21,7 @@ impl HTTP_Notifier {
     pub fn get_loop(&self) -> impl FnOnce() {
 
         let sender = self.sender.clone();
-        let config = self.config.clone();
+        let opts = self.opts.clone();
 
         let server = Server::new(move |request, mut response| {
 
@@ -46,8 +45,8 @@ impl HTTP_Notifier {
 
         move || {
             server.listen(
-                &config.http_notifier_host,
-                &format!("{}", config.http_notifier_port)
+                &opts.endpoint_host,
+                &format!("{}", opts.endpoint_port)
             );
         }
     }

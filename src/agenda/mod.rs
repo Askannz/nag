@@ -8,8 +8,7 @@ use anyhow::{anyhow, Context, bail};
 use chrono::Timelike;
 use log::{debug, info, warn};
 
-use crate::config::Config;
-use crate::BotUpdate;
+use crate::{Opts, BotUpdate};
 
 mod cron;
 mod time_parsing;
@@ -28,9 +27,9 @@ type Instant = chrono::DateTime<chrono::offset::Local>;
 
 impl Agenda {
 
-    pub(super) fn new(config: &Config, sender: &Sender<BotUpdate>) -> Self {
+    pub(super) fn new(opts: &Opts, sender: &Sender<BotUpdate>) -> Self {
 
-        let state_path = config.data_path.join("agenda.json");
+        let state_path = opts.data_path.join("agenda.json");
         debug!("Agenda state path: {}", state_path.to_string_lossy());
 
         let state = AgendaState::restore(&state_path)

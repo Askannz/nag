@@ -3,8 +3,7 @@ use crossbeam_channel::Sender;
 use std::path::{Path, PathBuf};
 use serde::{Deserialize, Serialize};
 use log::{debug, info, warn, error};
-use crate::config::Config;
-use crate::BotUpdate;
+use crate::{Opts, BotUpdate};
 
 const POLL_TIMEOUT: u32 = 120;
 
@@ -17,13 +16,13 @@ pub struct Telegram {
 
 impl Telegram {
 
-    pub fn new(config: &Config, sender: &Sender<BotUpdate>) -> Self {
+    pub fn new(opts: &Opts, sender: &Sender<BotUpdate>) -> Self {
 
         let token = std::env::var("NAG_TELEGRAM_TOKEN")
             .expect("Environment variable NAG_TELEGRAM_TOKEN not set");
         let api_url = format!("https://api.telegram.org/bot{}", token);
 
-        let context_path = config.data_path.join("telegram.json");
+        let context_path = opts.data_path.join("telegram.json");
         debug!("Telegram context path: {}", context_path.to_string_lossy());
 
         let context = TelegramContext::restore(&context_path)
