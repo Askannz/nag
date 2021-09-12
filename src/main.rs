@@ -131,3 +131,10 @@ impl Verbosity {
         }
     }
 }
+
+pub fn format_error(err: anyhow::Error) -> String {
+    err.chain()
+        .map(|err| format!("{}", err))
+        .collect::<Vec<String>>()
+        .join(": ")
+}

@@ -8,7 +8,7 @@ use anyhow::{anyhow, Context, bail};
 use chrono::Timelike;
 use log::{debug, info, warn};
 
-use crate::{Opts, BotUpdate};
+use crate::{Opts, BotUpdate, format_error};
 
 mod cron;
 mod time_parsing;
@@ -135,7 +135,8 @@ impl Agenda {
 
             None => self.add_event(&words)
         }
-        .unwrap_or_else(format_error);
+        .unwrap_or_else(
+            |err| format!("Error: {}", format_error(err)));
 
         self.sender.send(BotUpdate::MsgOut(msg)).unwrap();
     }
@@ -394,17 +395,6 @@ impl Agenda {
 
         Ok(msg)
     }
-}
-
-fn format_error(err: anyhow::Error) -> String {
-
-    let mut msg = String::new();
-    for (i, err2) in err.chain().enumerate() {
-        let prefix = if i == 0 { "" } else { ": " };
-        msg = format!("{}{}{}", msg, prefix, err2);
-    }
-
-    format!("Error: {}", msg)
 }
 
 fn make_tags_print_list(events: &HashMap<u64, AgendaEvent>) -> Vec<String> {

@@ -4,7 +4,7 @@ use crossbeam_channel::Sender;
 use std::path::{Path, PathBuf};
 use serde::{Deserialize, Serialize};
 use log::{debug, info, warn, error};
-use crate::{Opts, BotUpdate};
+use crate::{Opts, BotUpdate, format_error};
 
 const POLL_TIMEOUT: u32 = 120;
 
@@ -121,20 +121,14 @@ impl Telegram {
     
             info!("Starting Telegram polling loop");
             loop {
-                let res = relay_updates();
-                if let Err(err) = res {
-                    error!("Telegram: error retrieving updates: {}", err);
-                }
+                relay_updates()
+                    .unwrap_or_else(|err| error!(
+                        "Telegram: error retrieving updates: {}",
+                        format_error(err)
+                    ))
             }
         }
     }
-}
-
-fn format_error(err: anyhow::Error) -> String {
-    err.chain()
-        .map(|err| format!("{}", err))
-        .collect::<Vec<String>>()
-        .join(": ")
 }
 
 #[derive(Debug, Clone, Deserialize)]
