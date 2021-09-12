@@ -19,6 +19,13 @@ fn main() {
         .filter_module("nag", opts.verbosity.to_level())
         .init();
 
+    if !opts.data_path.exists() {
+        std::fs::create_dir(&opts.data_path)
+            .expect(&format!(
+                "Cannot create: {}",
+                opts.data_path.to_string_lossy()));
+    }
+
     let (sender, receiver) = unbounded();
 
     let mut telegram = Telegram::new(&opts, &sender);
