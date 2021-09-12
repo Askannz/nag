@@ -112,14 +112,28 @@ impl Agenda {
 
         debug!("words {:?}", words);
 
-        let msg = match words.as_slice() {
-            ["/help"]             => self.print_help(),
-            ["/print"]             => self.print_events(),
-            ["/print", args2 @ ..] => self.print_tagged_events(args2),
-            ["/del", args2 @ ..]   => self.remove_events(args2),
-            ["/tag", args2 @ ..]   => self.tag_event(args2),
-            ["/untag", args2 @ ..] => self.untag_event(args2),
-            [args2 @ ..]          => self.add_event(args2)
+        let command_res = || -> Option<(&str, &[&str])> {
+            let (&w, rew_words) = words.split_first()?;
+            let c = w.chars().nth(0)?;
+            match c {
+                '/' => Some((w, rew_words)),
+                _ => None
+            }
+        }();
+
+        let msg = match command_res {
+
+            Some((w, rem_words)) => match (w, rem_words) {
+                ("/help", _)     => self.print_help(),
+                ("/print", [])   => self.print_events(),
+                ("/print", args) => self.print_tagged_events(args),
+                ("/del", args)   => self.remove_events(args),
+                ("/tag", args)   => self.tag_event(args),
+                ("/untag", args) => self.untag_event(args),
+                _                => Ok("Unknown command".into())
+            },
+
+            None => self.add_event(&words)
         }
         .unwrap_or_else(format_error);
 
