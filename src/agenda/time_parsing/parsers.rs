@@ -68,18 +68,18 @@ fn try_parse_day<'a, 'b>(state: &'b ParsingState<'a>) -> Option<ParseUpdate<'a>>
 fn try_parse_month<'a, 'b>(state: &'b ParsingState<'a>) -> Option<ParseUpdate<'a>> {
 
     const MONTHS: [&str; 12] = [
-        "January",
-        "February",
-        "March",
-        "April",
-        "May",
-        "June",
-        "July",
-        "August",
-        "September",
-        "October",
-        "November",
-        "December"
+        "january",
+        "february",
+        "march",
+        "april",
+        "may",
+        "june",
+        "july",
+        "august",
+        "september",
+        "october",
+        "november",
+        "december"
     ];
 
     let (word, remaining_words) = match state.remaining_words {
@@ -89,8 +89,12 @@ fn try_parse_month<'a, 'b>(state: &'b ParsingState<'a>) -> Option<ParseUpdate<'a
         _ => return  None
     };
 
+    let word = word.to_lowercase();
+
     let month = {
-        let month_0 = MONTHS.iter().position(|m| m == word)?;
+        let month_0 = MONTHS
+            .iter()
+            .position(|&m| m == word)?;
         month_0 as u64 + 1
     };
 
@@ -382,13 +386,13 @@ fn try_parse_relative<'a, 'b>(state: &'b ParsingState<'a>) -> Option<ParseUpdate
 fn try_parse_weekday<'a, 'b>(state: &'b ParsingState<'a>) -> Option<ParseUpdate<'a>> {
 
     const DAYS: [&str; 7] = [
-        "Monday",
-        "Tuesday",
-        "Wednesday",
-        "Thursday",
-        "Friday",
-        "Saturday",
-        "Sunday"
+        "monday",
+        "tuesday",
+        "wednesday",
+        "thursday",
+        "friday",
+        "saturday",
+        "sunday"
     ];
 
     let (word, remaining_words) = match state.remaining_words {
@@ -398,7 +402,7 @@ fn try_parse_weekday<'a, 'b>(state: &'b ParsingState<'a>) -> Option<ParseUpdate<
     };
 
     let event_offset: u32 = DAYS
-        .iter().position(|d| d.to_lowercase() == word.to_lowercase())?
+        .iter().position(|&d| d == word.to_lowercase())?
         .try_into().unwrap();
     let current_offset = state.now.date().weekday().num_days_from_monday();
 
