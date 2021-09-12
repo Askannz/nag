@@ -14,6 +14,7 @@ Features:
 * Add new events by writing them in natural language (e.g "at 6pm pick up groceries")
 * Events can be repeating (e.g "every year on January 28th Mark's birthday")
 * Events can be given a tag, for easy sorting
+* Notifications can also be triggered via a REST endpoint (see below)
 
 ## Building
 
