@@ -362,12 +362,35 @@ impl Agenda {
             )
         ];
 
-        let msg = commands.iter()
+        let commands_msg = commands.iter()
             .map(|(cmd, txt)| {
                 format!("<b>{}</b>\n    {}", cmd, txt)
             })
             .collect::<Vec<String>>()
             .join("\n");
+
+        let agenda_msg = "\
+            To add a new event, send \
+            <code>&lt;time&gt; &lt;message&gt;</code> \
+            without a leading <b>/</b>.";
+
+        let examples = [
+            "at 9am pick up groceries",
+            "every year on April 4th Dan's birthday",
+            "on 21/08 dentist appointment",
+            "in 30 minutes check cake in oven",
+            "every day at 5pm do some exercise"
+        ];
+
+        let examples_msg = examples.iter()
+            .map(|txt| { format!("    {}", txt) })
+            .collect::<Vec<String>>()
+            .join("\n");
+
+
+        let msg = format!(
+            "{}\n\n{}\nExamples:\n\n<code>{}</code>",
+            commands_msg, agenda_msg, examples_msg);
 
         Ok(msg)
     }
