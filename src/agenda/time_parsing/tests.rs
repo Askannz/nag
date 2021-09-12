@@ -97,7 +97,8 @@ fn single_digits() {
 #[should_panic]
 fn fail_every() {
 
-    let opts = Opts::parse_from(["data/"]);
+    let opts = Opts::parse_from(["placeholder", "placeholder"]);
+
     let now = chrono::Local.ymd(2000, 01, 01).and_hms(08, 00, 00);
     let msg = "every year at 7am";
 
@@ -120,7 +121,8 @@ struct TestParams<'a> {
 #[cfg(test)]
 fn test_parse(params: TestParams) {
 
-    let opts = Opts::parse_from(["data/"]);
+    let opts = Opts::parse_from(["placeholder", "placeholder"]);
+
     let words: Vec<&str> = params.msg.split_whitespace().collect();
     let res = parse_cronline(&opts, &params.now, &words).unwrap();
 
