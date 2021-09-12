@@ -6,7 +6,7 @@ use std::path::PathBuf;
 use std::str::FromStr;
 use crossbeam_channel::unbounded;
 use clap::{Clap, AppSettings, ArgEnum};
-use log::{debug, warn};
+use log::debug;
 use telegram::Telegram;
 use agenda::Agenda;
 use http::HTTP_Notifier;
@@ -30,9 +30,7 @@ fn main() {
     rayon::spawn(http_notifier.get_loop());
 
     let version = env!("CARGO_PKG_VERSION");
-    if let Err(err)= telegram.send(&format!("Nag version {}", version)) {
-        warn!("{}", err);
-    }
+    telegram.send(&format!("Nag version {}", version));
 
     loop {
 
@@ -41,7 +39,7 @@ fn main() {
 
         match update {
             BotUpdate::MsgIn(msg) => agenda.process(&msg),
-            BotUpdate::MsgOut(msg) => telegram.send(&msg).unwrap()
+            BotUpdate::MsgOut(msg) => telegram.send(&msg)
         }
     }
 

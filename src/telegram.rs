@@ -1,4 +1,5 @@
 use std::sync::{Arc, Mutex};
+use anyhow::{anyhow, Context};
 use crossbeam_channel::Sender;
 use std::path::{Path, PathBuf};
 use serde::{Deserialize, Serialize};
@@ -43,12 +44,15 @@ impl Telegram {
         telegram
     }
 
-    pub fn send(&mut self, text: &str) -> anyhow::Result<()> {
+    pub fn send(&mut self, text: &str) {
 
         let context = self.context.lock().unwrap();
 
-        if let Some(chat_id) = context.chat_id {
+        || -> anyhow::Result<()>{
 
+            let chat_id = context.chat_id
+                .ok_or(anyhow!("no known ChatID stored"))?;
+    
             let url = format!("{}/sendMessage", self.api_url);
             let json = ureq::json!({
                 "chat_id": chat_id,
@@ -58,13 +62,13 @@ impl Telegram {
 
             ureq::post(&url)
                 .send_json(json)
-                .map_err(|err| anyhow::anyhow!("{:?}", err))?;
+                .context("call to Telegram API failed")?;
 
             Ok(())
-
-        } else {
-            anyhow::bail!("no known ChatID stored")
-        }
+        }()
+        .unwrap_or_else(|err| error!(
+            "Could not send Telegram message: {}",
+            format_error(err)));
     }
 
     pub fn get_loop(&self) -> impl FnOnce() {
@@ -124,6 +128,13 @@ impl Telegram {
             }
         }
     }
+}
+
+fn format_error(err: anyhow::Error) -> String {
+    err.chain()
+        .map(|err| format!("{}", err))
+        .collect::<Vec<String>>()
+        .join(": ")
 }
 
 #[derive(Debug, Clone, Deserialize)]
