@@ -125,8 +125,8 @@ impl Agenda {
 
             Some((w, rem_words)) => match (w, rem_words) {
                 ("/help", _)     => self.print_help(),
-                ("/print", [])   => self.print_events(),
-                ("/print", args) => self.print_tagged_events(args),
+                ("/events", [])   => self.print_events(),
+                ("/events", args) => self.print_tagged_events(args),
                 ("/del", args)   => self.remove_events(args),
                 ("/tag", args)   => self.tag_event(args),
                 ("/untag", args) => self.untag_event(args),
@@ -341,11 +341,11 @@ impl Agenda {
                 "Show this message"
             ),
             (
-                "/print",
+                "/events",
                 "Lists upcoming events"
             ),
             (
-                "/print &lt;tag&gt",
+                "/events &lt;tag&gt",
                 "Lists upcoming events tagged with &lt;tag&gt;"
             ),
             (
