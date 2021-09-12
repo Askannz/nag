@@ -424,12 +424,17 @@ fn make_events_print_list(
     ids_list.iter().map(|id| {
 
         let event = &events[id];
+
+        let sanitized = event.text
+            .replace("<", "&lt;")
+            .replace(">", "&gt;")
+            .replace("<", "&amp;");
         
         format!(
             "<pre>  {} - [{}] {}</pre>",
             event.cronline.msg_format(opts),
             id,
-            event.text
+            sanitized
         )
     }).collect()
 }
