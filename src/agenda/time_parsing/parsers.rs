@@ -195,10 +195,10 @@ fn try_parse_duration<'a, 'b>(state: &'b ParsingState<'a>) -> Option<ParseUpdate
     let value: i64 = reg_match.as_str().parse().ok()?;
 
     let durations: Vec<_> = vec![
-        (r"m(in(utes?)?)?", Duration::minutes(value)),
-        (r"h(ours?)?", Duration::hours(value)),
-        (r"d(ays?)?", Duration::days(value)),
-        (r"w(eeks?)?", Duration::weeks(value)),
+        (r"^m(in(utes?)?)?$", Duration::minutes(value)),
+        (r"^h(ours?)?$", Duration::hours(value)),
+        (r"^d(ays?)?$", Duration::days(value)),
+        (r"^w(eeks?)?$", Duration::weeks(value)),
     ]
     .into_iter()
     .map(|(reg, dur)| (Regex::new(reg).unwrap(), dur))
