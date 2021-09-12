@@ -2,6 +2,8 @@
 
 A Telegram bot for the forgetful.
 
+![Screenshot](screenshot.png)
+
 ## Description
 
 Nag is a bot whose purpose is to remind you about things. You set a message and a date, and Nag will send you a reminder at the given date. Simple as that.
