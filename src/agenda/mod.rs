@@ -323,7 +323,7 @@ impl Agenda {
         }
 
         let msg = [
-            vec![format!("<b>{}:</b>", tag)],
+            vec![format!("<b>Tag</b> <code>{}</code>:", tag)],
             make_events_print_list(&self.opts, selected_events)
         ]
         .concat().join("\n");
@@ -396,7 +396,7 @@ fn make_tags_print_list(events: &HashMap<u64, AgendaEvent>) -> Vec<String> {
         });
 
     tags_count.iter()
-        .map(|(tag, count)| format!("<b>{}</b>: {} events", tag, count))
+        .map(|(tag, count)| format!("<b>Tag</b> <code>{}</code>: {} events", tag, count))
         .collect()
 }
 
