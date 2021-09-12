@@ -59,7 +59,7 @@ pub enum BotUpdate {
 #[clap(setting = AppSettings::DeriveDisplayOrder)]
 pub struct Opts {
 
-    #[clap(required=true, group="aaa")]
+    #[clap(required=true)]
     data_path: PathBuf,
 
     #[clap(
