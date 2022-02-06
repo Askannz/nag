@@ -32,9 +32,9 @@ fn main() {
     let mut agenda = Agenda::new(&opts, &sender);
     let http_notifier = HTTP_Notifier::new(&opts, &sender);
 
-    rayon::spawn(telegram.get_loop());
-    rayon::spawn(agenda.get_loop());
-    rayon::spawn(http_notifier.get_loop());
+    std::thread::spawn(telegram.get_loop());
+    std::thread::spawn(agenda.get_loop());
+    std::thread::spawn(http_notifier.get_loop());
 
     let version = env!("CARGO_PKG_VERSION");
     telegram.send(&format!("Nag version {}", version));
