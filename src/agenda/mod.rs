@@ -108,6 +108,7 @@ impl Agenda {
 
     pub(super) fn process(&mut self, msg: &str) {
 
+        let msg = msg.to_ascii_lowercase();
         let words: Vec<&str> = msg.split_whitespace().collect();
 
         debug!("words {:?}", words);
