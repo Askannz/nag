@@ -442,12 +442,19 @@ fn make_events_print_list(
 
 fn format_time_diff(dt: chrono::Duration) -> String {
 
+    let mut nb_minutes = dt.num_minutes();
+    if (dt.num_seconds() % 60) >= 30 {
+        nb_minutes += 1;
+    }
+
+    let rounded_dt = chrono::Duration::minutes(nb_minutes);
+
     let (weeks, days, hours, minutes, seconds) = (
-        dt.num_weeks(),
-        dt.num_days(),
-        dt.num_hours(),
-        dt.num_minutes(),
-        dt.num_seconds()
+        rounded_dt.num_weeks(),
+        rounded_dt.num_days(),
+        rounded_dt.num_hours(),
+        rounded_dt.num_minutes(),
+        rounded_dt.num_seconds()
     );
 
     let mut text = vec![];
@@ -455,8 +462,6 @@ fn format_time_diff(dt: chrono::Duration) -> String {
     if days > 0 { text.push(format!("{} days", days % 7)); }
     if hours > 0 { text.push(format!("{} hours", hours % 24)); }
     if minutes > 0 {
-        let mut minutes = minutes;
-        if seconds >= 30 { minutes += 1; }
         text.push(format!("{} minutes", minutes % 60));
     } else {
         text.push("less than a minute".to_owned());
